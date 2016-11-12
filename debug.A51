@@ -143,8 +143,8 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
         jmp     UP1           ;-; prejdi do stavu UP1
 UP1:
                 POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
-        lcall   READPORTS       ; nacitanie dat
-        jb      MB2, UP1      ;-; mame uz 1. spomalovaciu clonku?
+UP1A:   lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP1A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
@@ -163,6 +163,8 @@ UP1_MB1:
         anl     A, #00000100b ;-;
         jz      UP2           ;-; Ak nie, chod do stavu UP2
         clr     UP              ; zastav motor
+        setb    UPOld           ;       (a zalohuj) 
+        clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
@@ -175,17 +177,45 @@ FLOOR2:
 F2S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO2          ;-; vynulovanie volby poschodia na ktorom stojim
         lcall   WRITEPORTS      ;
+        
+        mov     A, #00011000b ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.)
+        jb      UPOld, F2OK     ; Je to pravda? Naozaj som doteraz isiel hore?
+        cpl     A               ;       Ak nie, znegujeme
+F2OK:   mov     B, A            ; Masku dame do Bcka
+        
+        ; Pohyb v jednom smere (nevieme v ktorom)
+        anl     B, #00011010b  ;-; este ju kozmeticky upravime
         mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, #00011000b ;-;
-        jz      F2S           ;-; ak nie, opakuj
-        setb    UP              ; rychly pohyb hore
+        anl     A, B            ; tu ju pouzijeme       
+        jnz     F2              ; nasli sme poschodie v tomto smere
+        ; Pohyb v opacnom smere (nevieme v ktorom)
+        cpl     UPOld           ;  Znegujem stary posun
+        cpl     DOWNOld         ;  |
+        mov     A, B            ;  Znegujeme masku
+        cpl     A               ;  |
+        mov     B, A            ;  |
+        anl     B, #00011010b  ;-; este ju kozmeticky upravime
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        anl     A, B            ; tu ju pouzijeme       
+        jnz     F2              ; nasli sme poschodie v tomto smere
+        
+        jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
+F2:     jb      UPOld, F2UP     ;   
+        jmp     F2DOWN          ;
+F2UP:   setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     UP2           ;-; prejdi do stavu UP2        
+        jmp     UP2           ;-; prejdi do stavu UP2    
+F2DOWN: setb    DOWN            ; rychly pohyb hore
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     DOWN2         ;-; prejdi do stavu UP2    
+        
+            
 UP2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
-        lcall   READPORTS       ; nacitanie dat
-        jb      MB2, UP2      ;-; mame uz 1. spomalovaciu clonku?
+UP2A:   lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP2A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
@@ -216,17 +246,54 @@ FLOOR3:
 F3S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
         lcall   WRITEPORTS      ;
+
+        mov     A, #00010000b ;-; Default predpokladam, ze idem hore (na 4.)
+        jb      UPOld, F3OK      ;-; Je to pravda? Naozaj idem hore?
+        cpl     A               ;       Ak nie, znegujeme
+F3OK:   mov     B, A            ; Masku dame do Bcka
+        
+        ; Pohyb v jednom smere (nevieme v ktorom)
+        anl     B, #00010110b  ;-; este ju kozmeticky upravime
         mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, #00010000b ;-;
-        jz      F3S           ;-; ak nie, opakuj
-        setb    UP              ; rychly pohyb hore
+        anl     A, B            ; tu ju pouzijeme       
+        jnz     F3              ; nasli sme poschodie v tomto smere
+        ; Pohyb v opacnom smere (nevieme v ktorom)
+        cpl     UPOld           ;  Znegujem stary posun
+        cpl     DOWNOld         ;  |
+        mov     A, B            ;  Znegujeme masku
+        cpl     A               ;  |
+        mov     B, A            ;  |
+        anl     B, #00010110b  ;-; este ju kozmeticky upravime
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        anl     A, B            ; tu ju pouzijeme       
+        jnz     F3              ; nasli sme poschodie v tomto smere
+        
+        jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
+F3:     jb      UPOld, F3UP     ;   
+        jmp     F3DOWN          ;
+F3UP:   setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     UP3           ;-; prejdi do stavu UP3        
+        jmp     UP3           ;-; prejdi do stavu UP2    
+F3DOWN: setb    DOWN            ; rychly pohyb hore
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     DOWN3         ;-; prejdi do stavu UP2    
+
+        
+        
+        
+;        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+;        anl     A, #00010000b ;-;
+;        jz      F3S           ;-; ak nie, opakuj
+;        setb    UP              ; rychly pohyb hore
+;        setb    FAST            ; 
+;        lcall   WRITEPORTS      ; 
+;        jmp     UP3           ;-; prejdi do stavu UP3        
 UP3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
-        lcall   READPORTS       ; nacitanie dat
-        jb      MB2, UP3      ;-; mame uz 1. spomalovaciu clonku?
+UP3A:   lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP3A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
@@ -245,10 +312,10 @@ UP3_MB1:
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
-DOWN3A:
+DOWN3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         lcall   READPORTS       ; nacitanie dat
-        jb      MB2, DOWN3A    ;-; mame uz 1. spomalovaciu clonku?
+        jb      MB2, DOWN3    ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
         setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
@@ -265,8 +332,11 @@ DOWN3_MB1:
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00000100b ;-;
-        jz      DOWN2         ;-; Ak nie, chod do stavu DOWN2
-        clr     DOWN            ; zastav motor
+        jnz     D3_MB1C         ; Ak nie, chod do stavu DOWN2
+        ljmp    DOWN2         ;-; |
+D3_MB1C:clr     DOWN            ; zastav motor
+        setb    DOWNOld         ;       (a zalohuj)
+        clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2      
@@ -307,8 +377,9 @@ DOWN4_MB1:
         jb      MB1, DOWN4_MB1;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00001000b ;-;
-        jz      DOWN3         ;-; Ak nie, chod do stavu DOWN3
-        clr     DOWN            ; zastav motor
+        jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
+        ljmp    DOWN3         ;-; |
+D4_MB1C:clr     DOWN            ; zastav motor
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
@@ -320,15 +391,7 @@ DOWN2:
         lcall   WRITEPORTS      ; 
         _BP_
         nop
-        nop
-        
-DOWN3: 
-        clr     DOWN            ; zastav motor
-        clr     FAST            ; 
-        lcall   WRITEPORTS      ; 
-        _BP_
-        nop
-        nop                
+        nop             
                 
                 
 ENDPROG:
