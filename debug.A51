@@ -169,8 +169,11 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
         jmp     UP1           ;-; prejdi do stavu UP1
 UP1:
                 POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
 UP1A:   lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, UP1A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -180,6 +183,7 @@ UP1A:   lcall   READPORTS       ; nacitanie dat
 UP1_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;   
@@ -193,6 +197,7 @@ UP1_MB2:
 UP1_MB1:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+;        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00000100b ;-;
@@ -251,8 +256,11 @@ F2DOWN: setb    DOWN            ; rychly pohyb hore
             
 UP2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
 UP2A:   lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, UP2A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -262,6 +270,7 @@ UP2A:   lcall   READPORTS       ; nacitanie dat
 UP2_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -275,6 +284,7 @@ UP2_MB2:
 UP2_MB1:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+;        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00001000b ;-;
@@ -288,8 +298,11 @@ U2_MB1C:clr     UP              ; zastav motor
         jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
 DOWN2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN2    ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -299,6 +312,7 @@ DOWN2:
 DOWN2_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN2_MB2;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -311,9 +325,10 @@ DOWN2_MB2:
         jmp     DOWN2_MB1     ;-; a prejdi do stavu DOWN2_MB1
 DOWN2_MB1:    
         lcall   READPORTS       ; nacitanie dat
-        ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-        jb      MB1, DOWN2_MB1;-; Sme na zastavovacej clonke?
-        clr     DOWN            ; zastav motor
+        jnb     SKRD, D2_MB1C   ; Sme na hornej porovnavacej clonke?
+        jnb     MB1, D2_MB1C  ;-; Sme na zastavovacej clonke?
+        jmp     DOWN2_MB1       ; Ak sme nechytili ani jednu clonku, opakujeme
+D2_MB1C:clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
@@ -377,8 +392,11 @@ F3DOWN: setb    DOWN            ; rychly pohyb hore
 ;        jmp     UP3           ;-; prejdi do stavu UP3        
 UP3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
 UP3A:   lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, UP3A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -388,6 +406,7 @@ UP3A:   lcall   READPORTS       ; nacitanie dat
 UP3_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -400,9 +419,10 @@ UP3_MB2:
         jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
 UP3_MB1:
         lcall   READPORTS       ; nacitanie dat
-        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-        jb      MB1, UP3_MB1  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
-        clr     UP              ; zastav motor
+        jnb     SKRH, U3_MB1C  ;  Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
+        jnb     MB1, U3_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
+        jmp     UP3_MB1         ; Ak sme nechytili ani jednu clonku, opakujeme. 
+U3_MB1C:clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
@@ -410,8 +430,11 @@ UP3_MB1:
         jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
 DOWN3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN3    ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -421,6 +444,7 @@ DOWN3:
 DOWN3_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN3_MB2;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -434,6 +458,7 @@ DOWN3_MB2:
 DOWN3_MB1:    
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+;        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00000100b ;-;
@@ -465,8 +490,12 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         jmp     DOWN4         ;-; prejdi do stavu DOWN4 
 DOWN4:
                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+        jnb     MB1, $-3        ;  |
+        
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN4    ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -476,6 +505,7 @@ DOWN4:
 DOWN4_MB2:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+        ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, DOWN4_MB2;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -489,7 +519,8 @@ DOWN4_MB2:
 DOWN4_MB1:    
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-        jb      MB1, DOWN4_MB1;-; Sme na zastavovacej clonke?
+;        ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00001000b ;-;
         jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
@@ -548,7 +579,19 @@ ENDPROG:
         call    WRITEPORTS                ; zapis novu informaciu
         _BP_
         ret
-
+        
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DELAY
+; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
+; bude timer)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+DELAY:
+        mov     R1, #0 
+        mov     R2, #0ffh
+        djnz    R1, $
+        djnz    R2, $-2
+        ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; WAITFORTIMER

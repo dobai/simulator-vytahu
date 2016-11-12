@@ -256,30 +256,30 @@
 0076 7525FF          245            mov     OUTPORTC, #(bmPO1 or bmPO2D or bmPO2U or bmPO3D or bmPO3U or bmPO4 or bmLEDD
                                                                                 or bmLEDU)
 0079 D218            246            setb    KS
-007B 12051A          247            call    WRITEPORTS          ; zapis novu informaciu
+007B 120589          247            call    WRITEPORTS          ; zapis novu informaciu
                      248    ;;;;;;;;
                      249    
 007E 752300          250            mov     OUTPORTA, #0
 0081 752400          251            mov     OUTPORTB, #0
 0084 752500          252            mov     OUTPORTC, #0
-0087 12051A          253            call    WRITEPORTS          ; zapis novu informaciu
+0087 120589          253            call    WRITEPORTS          ; zapis novu informaciu
                      254    
 008A 752800          255            mov     INPORTA, #0
 008D 752100          256            mov     INPORTB, #0         
 0090 752200          257            mov     INPORTC, #0
-0093 1204D5          258            call    READPORTS           ; prvotne nacitanie udajov
+0093 120544          258            call    READPORTS           ; prvotne nacitanie udajov
                      259    
 0096                 260    CALIB:
                      261            ;kalibracia vytahu podla dolnej porovnavacej clonky
-0096 1204D5          262            lcall   READPORTS                   ; precitaj, co je na portoch
+0096 120544          262            lcall   READPORTS                   ; precitaj, co je na portoch
 0099 300C11          263            jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koni
                                                                                ec
 009C D221            264            setb    DOWN                        ; inak pod dole
 009E D222            265            setb    FAST                        ; a rychlo
 00A0 C223            266            clr     SLOW                        ;
-00A2 12051A          267            lcall   WRITEPORTS                  ; zapis informaciu 
+00A2 120589          267            lcall   WRITEPORTS                  ; zapis informaciu 
 00A5                 268    CALIBLOOP:
-00A5 1204D5          269            lcall   READPORTS                   ; 
+00A5 120544          269            lcall   READPORTS                   ; 
 00A8 300C02          270            jnb     SKRD, CALIBEND              ; ak sme dole, konci
                      271            ;jnb     MB2, CALIBEND               ; ak sme na poschodi, konci
 00AB 80F8            272            jmp     CALIBLOOP
@@ -288,7 +288,7 @@
 00B0 C222            275            clr     FAST                        ; stojime
 00B2 C221            276            clr     DOWN                        ;
 00B4 D224            277            setb    FLED1
-00B6 12051A          278            lcall   WRITEPORTS                  ; zapis informaciu
+00B6 120589          278            lcall   WRITEPORTS                  ; zapis informaciu
                      279 +1         _BP_
 00B9 C2B3            280 +1         clr     P3.3
 00BB D2AA            281 +1         setb    EX1
@@ -329,11 +329,11 @@
 00C7 C226            313 +1         clr     FLED3           
 00C9 C227            314 +1         clr     FLED4           
 00CB D224            315 +1         setb    FLED1
-00CD 12051A          316 +1         lcall   WRITEPORTS
-00D0 1204C4          318            lcall   WAITFORTIMER    ; simulacia TIMERu
-00D3 1204D5          319    F1S:    lcall   READPORTS     ;-; nacitanie dat
+00CD 120589          316 +1         lcall   WRITEPORTS
+00D0 120533          318            lcall   WAITFORTIMER    ; simulacia TIMERu
+00D3 120544          319    F1S:    lcall   READPORTS     ;-; nacitanie dat
 00D6 C219            320            clr     PKO1          ;-; vynulovanie volby poschodia na ktorom stojim
-00D8 12051A          321            lcall   WRITEPORTS      ;
+00D8 120589          321            lcall   WRITEPORTS      ;
 00DB E528            322            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
                                                                                om stojim
 00DD 541C            323            anl     A, #00011100b ;-;
@@ -341,7 +341,7 @@
 00E1 D220            325            setb    UP              ; rychly pohyb hore
 00E3 D222            326            setb    FAST            ; 
 00E5 C223            327            clr     SLOW            ;
-00E7 12051A          328            lcall   WRITEPORTS      ; 
+00E7 120589          328            lcall   WRITEPORTS      ; 
 00EA 0200ED          329            jmp     UP1           ;-; prejdi do stavu UP1
 00ED                 330    UP1:
                      331 +1                 POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
@@ -353,727 +353,818 @@
 00F5 C226            336 +1         clr     FLED3           
 00F7 C227            337 +1         clr     FLED4           
 00F9 D224            338 +1         setb    FLED1
-00FB 12051A          339 +1         lcall   WRITEPORTS
-00FE 1204D5          341    UP1A:   lcall   READPORTS       ; nacitanie dat
-                     342 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-0101 200B02          343 +1         jb      SKRH, $+5
-0104 0204A9          344 +1         ljmp    ERR_SKRH
-VYTAH/ORIUD*'©42'©4                                                                                          PAGE 7
+00FB 120589          339 +1         lcall   WRITEPORTS
+00FE 120544          341            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+0101 3009FA          342            jnb     MB1, $-3        ;  |
+0104 120544          343    UP1A:   lcall   READPORTS       ; nacitanie dat
+                     344 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+VYTAH/ORIWDò&©4ú&©4                                                                                          PAGE 7
 
-0107 00              345 +1         nop
-0108 200AF3          347            jb      MB2, UP1A     ;-; mame uz 1. spomalovaciu clonku?
-010B 1204D5          348            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-010E 300AFA          349            jnb     MB2, $-3        ;       
-0111 D22E            350            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-0113 12051A          351            lcall   WRITEPORTS      ;
-0116 020119          352            jmp     UP1_MB2       ;-; a prejdi do stavu UP1_MB2
-0119                 353    UP1_MB2:
-0119 1204D5          354            lcall   READPORTS       ; nacitanie dat
-                     355 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-011C 200B02          356 +1         jb      SKRH, $+5
-011F 0204A9          357 +1         ljmp    ERR_SKRH
-0122 00              358 +1         nop
-0123 200AF3          360            jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
-0126 D22F            361            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
-0128 12051A          362            lcall   WRITEPORTS      ;   
-012B E528            363            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-012D 5404            364            anl     A, #00000100b ;-;
-012F 600A            365            jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1
-0131 D223            366            setb    SLOW            ;       Ak ano, spomalme
-0133 C222            367            clr     FAST            ; 
-0135 12051A          368            lcall   WRITEPORTS      ;         
-0138 02013B          369            jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
-013B                 370    UP1_MB1:
-013B 1204D5          371            lcall   READPORTS       ; nacitanie dat
-                     372 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-013E 200B02          373 +1         jb      SKRH, $+5
-0141 0204A9          374 +1         ljmp    ERR_SKRH
-0144 00              375 +1         nop
-0145 2009F3          377            jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
-0148 E528            378            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-014A 5404            379            anl     A, #00000100b ;-;
-014C 606D            380            jz      UP2           ;-; Ak nie, chod do stavu UP2
-014E C220            381            clr     UP              ; zastav motor
-0150 D23A            382            setb    UPOld           ;       (a zalohuj) 
-0152 C23B            383            clr     DOWNOld         ;       (a zalohuj)
-0154 C222            384            clr     FAST            ; 
-0156 12051A          385            lcall   WRITEPORTS      ; 
-0159 02015C          386            jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
-                     387    
-                     388    ;------------------------------------------------------------------------------- << 2. posch
+0107 200B02          345 +1         jb      SKRH, $+5
+010A 02050F          346 +1         ljmp    ERR_SKRH
+010D 00              347 +1         nop
+                     349    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+010E 200AF3          350            jb      MB2, UP1A     ;-; mame uz 1. spomalovaciu clonku?
+0111 120544          351            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+0114 300AFA          352            jnb     MB2, $-3        ;       
+0117 D22E            353            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+0119 120589          354            lcall   WRITEPORTS      ;
+011C 02011F          355            jmp     UP1_MB2       ;-; a prejdi do stavu UP1_MB2
+011F                 356    UP1_MB2:
+011F 120544          357            lcall   READPORTS       ; nacitanie dat
+                     358 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+0122 200B02          359 +1         jb      SKRH, $+5
+0125 02050F          360 +1         ljmp    ERR_SKRH
+0128 00              361 +1         nop
+                     363 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+0129 200902          364 +1         jb      MB1, $+5
+012C 0204D3          365 +1         ljmp    ERR_1SPOM_C
+012F 00              366 +1         nop
+0130 200AEC          368            jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
+0133 D22F            369            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+0135 120589          370            lcall   WRITEPORTS      ;   
+0138 E528            371            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+013A 5404            372            anl     A, #00000100b ;-;
+013C 600A            373            jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1
+013E D223            374            setb    SLOW            ;       Ak ano, spomalme
+0140 C222            375            clr     FAST            ; 
+0142 120589          376            lcall   WRITEPORTS      ;         
+0145 020148          377            jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
+0148                 378    UP1_MB1:
+0148 120544          379            lcall   READPORTS       ; nacitanie dat
+                     380 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+014B 200B02          381 +1         jb      SKRH, $+5
+014E 02050F          382 +1         ljmp    ERR_SKRH
+0151 00              383 +1         nop
+                     385 +1         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spo
+                                                                               malovaciu) <<<
+0152 200A02          386 +1         jb      MB2, $+5
+0155 0204F1          387 +1         ljmp    ERR_ZAST_C
+0158 00              388 +1         nop
+0159 2009EC          390            jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
+015C E528            391            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+015E 5404            392            anl     A, #00000100b ;-;
+0160 606D            393            jz      UP2           ;-; Ak nie, chod do stavu UP2
+0162 C220            394            clr     UP              ; zastav motor
+0164 D23A            395            setb    UPOld           ;       (a zalohuj) 
+0166 C23B            396            clr     DOWNOld         ;       (a zalohuj)
+0168 C222            397            clr     FAST            ; 
+016A 120589          398            lcall   WRITEPORTS      ; 
+016D 020170          399            jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
+                     400    
+                     401    ;------------------------------------------------------------------------------- << 2. posch
                                                                                odie >>
-                     389    
-015C                 390    FLOOR2:
-                     391 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
-                                                                               ny", nechaj len aktualne poschodie)
-015C C22F            392 +1         clr     LEDU            
-015E C22E            393 +1         clr     LEDD 
-0160 C224            394 +1         clr     FLED1             
-0162 C225            395 +1         clr     FLED2                
-0164 C226            396 +1         clr     FLED3           
-0166 C227            397 +1         clr     FLED4           
-0168 D225            398 +1         setb    FLED2
-016A 12051A          399 +1         lcall   WRITEPORTS
-016D 1204C4          401            lcall   WAITFORTIMER    ; simulacia TIMERu
-0170 1204D5          402    F2S:    lcall   READPORTS     ;-; nacitanie dat
-0173 C21A            403            clr     PKO2          ;-; vynulovanie volby poschodia na ktorom stojim
-0175 12051A          404            lcall   WRITEPORTS      ;
-VYTAH/ORIED>(©4                                                                                              PAGE 8
+                     402    
+0170                 403    FLOOR2:
+VYTAH/ORI=D¾(©4                                                                                              PAGE 8
 
-                     405            
-0178 7418            406            mov     A, #00011000b ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.)
-017A 203A01          407            jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
-017D F4              408            cpl     A               ;       Ak nie, znegujeme
-017E F5F0            409    F2OK:   mov     B, A            ; Masku dame do Bcka
-                     410            
-                     411            ; Pohyb v jednom smere (nevieme v ktorom)
-0180 53F01A          412            anl     B, #00011010b  ;-; este ju kozmeticky upravime
-0183 E528            413            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
+                     404 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+                                                                               ny", nechaj len aktualne poschodie)
+0170 C22F            405 +1         clr     LEDU            
+0172 C22E            406 +1         clr     LEDD 
+0174 C224            407 +1         clr     FLED1             
+0176 C225            408 +1         clr     FLED2                
+0178 C226            409 +1         clr     FLED3           
+017A C227            410 +1         clr     FLED4           
+017C D225            411 +1         setb    FLED2
+017E 120589          412 +1         lcall   WRITEPORTS
+0181 120533          414            lcall   WAITFORTIMER    ; simulacia TIMERu
+0184 120544          415    F2S:    lcall   READPORTS     ;-; nacitanie dat
+0187 C21A            416            clr     PKO2          ;-; vynulovanie volby poschodia na ktorom stojim
+0189 120589          417            lcall   WRITEPORTS      ;
+                     418            
+018C 7418            419            mov     A, #00011000b ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.)
+018E 203A01          420            jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
+0191 F4              421            cpl     A               ;       Ak nie, znegujeme
+0192 F5F0            422    F2OK:   mov     B, A            ; Masku dame do Bcka
+                     423            
+                     424            ; Pohyb v jednom smere (nevieme v ktorom)
+0194 53F01A          425            anl     B, #00011010b  ;-; este ju kozmeticky upravime
+0197 E528            426            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
                                                                                om stojim
-0185 55F0            414            anl     A, B            ; tu ju pouzijeme       
-0187 7014            415            jnz     F2              ; nasli sme poschodie v tomto smere
-                     416            ; Pohyb v opacnom smere (nevieme v ktorom)
-0189 B23A            417            cpl     UPOld           ;  Znegujem stary posun
-018B B23B            418            cpl     DOWNOld         ;  |
-018D E5F0            419            mov     A, B            ;  Znegujeme masku
-018F F4              420            cpl     A               ;  |
-0190 F5F0            421            mov     B, A            ;  |
-0192 53F01A          422            anl     B, #00011010b  ;-; este ju kozmeticky upravime
-0195 E528            423            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
+0199 55F0            427            anl     A, B            ; tu ju pouzijeme       
+019B 7014            428            jnz     F2              ; nasli sme poschodie v tomto smere
+                     429            ; Pohyb v opacnom smere (nevieme v ktorom)
+019D B23A            430            cpl     UPOld           ;  Znegujem stary posun
+019F B23B            431            cpl     DOWNOld         ;  |
+01A1 E5F0            432            mov     A, B            ;  Znegujeme masku
+01A3 F4              433            cpl     A               ;  |
+01A4 F5F0            434            mov     B, A            ;  |
+01A6 53F01A          435            anl     B, #00011010b  ;-; este ju kozmeticky upravime
+01A9 E528            436            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
                                                                                om stojim
-0197 55F0            424            anl     A, B            ; tu ju pouzijeme       
-0199 7002            425            jnz     F2              ; nasli sme poschodie v tomto smere
-                     426            
-019B 80D3            427            jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
-019D 203A03          428    F2:     jb      UPOld, F2UP     ;   
-01A0 0201AF          429            jmp     F2DOWN          ;
-01A3 D220            430    F2UP:   setb    UP              ; rychly pohyb hore
-01A5 D222            431            setb    FAST            ; 
-01A7 C223            432            clr     SLOW            ;
-01A9 12051A          433            lcall   WRITEPORTS      ; 
-01AC 0201BB          434            jmp     UP2           ;-; prejdi do stavu UP2    
-01AF D221            435    F2DOWN: setb    DOWN            ; rychly pohyb hore
-01B1 D222            436            setb    FAST            ; 
-01B3 C223            437            clr     SLOW            ;
-01B5 12051A          438            lcall   WRITEPORTS      ; 
-01B8 02022D          439            jmp     DOWN2         ;-; prejdi do stavu UP2    
-                     440            
-                     441                
-01BB                 442    UP2:
-                     443 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+01AB 55F0            437            anl     A, B            ; tu ju pouzijeme       
+01AD 7002            438            jnz     F2              ; nasli sme poschodie v tomto smere
+                     439            
+01AF 80D3            440            jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
+01B1 203A03          441    F2:     jb      UPOld, F2UP     ;   
+01B4 0201C3          442            jmp     F2DOWN          ;
+01B7 D220            443    F2UP:   setb    UP              ; rychly pohyb hore
+01B9 D222            444            setb    FAST            ; 
+01BB C223            445            clr     SLOW            ;
+01BD 120589          446            lcall   WRITEPORTS      ; 
+01C0 0201CF          447            jmp     UP2           ;-; prejdi do stavu UP2    
+01C3 D221            448    F2DOWN: setb    DOWN            ; rychly pohyb hore
+01C5 D222            449            setb    FAST            ; 
+01C7 C223            450            clr     SLOW            ;
+01C9 120589          451            lcall   WRITEPORTS      ; 
+01CC 020255          452            jmp     DOWN2         ;-; prejdi do stavu UP2    
+                     453            
+                     454                
+01CF                 455    UP2:
+                     456 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-01BB C22F            444 +1         clr     LEDU            
-01BD C22E            445 +1         clr     LEDD 
-01BF C224            446 +1         clr     FLED1             
-01C1 C225            447 +1         clr     FLED2                
-01C3 C226            448 +1         clr     FLED3           
-01C5 C227            449 +1         clr     FLED4           
-01C7 D225            450 +1         setb    FLED2
-01C9 12051A          451 +1         lcall   WRITEPORTS
-01CC 1204D5          453    UP2A:   lcall   READPORTS       ; nacitanie dat
-                     454 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-01CF 200B02          455 +1         jb      SKRH, $+5
-01D2 0204A9          456 +1         ljmp    ERR_SKRH
-01D5 00              457 +1         nop
-01D6 200AF3          459            jb      MB2, UP2A     ;-; mame uz 1. spomalovaciu clonku?
-01D9 1204D5          460            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-01DC 300AFA          461            jnb     MB2, $-3        ;       
-VYTAH/ORI .DÖ(©4Þ(©4                                                                                          PAGE 9
+01CF C22F            457 +1         clr     LEDU            
+01D1 C22E            458 +1         clr     LEDD 
+VYTAH/ORI""D
+)©4                                                                                              PAGE 9
 
-01DF D22E            462            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-01E1 12051A          463            lcall   WRITEPORTS      ;
-01E4 0201E7          464            jmp     UP2_MB2       ;-; a prejdi do stavu UP2_MB2
-01E7                 465    UP2_MB2:
-01E7 1204D5          466            lcall   READPORTS       ; nacitanie dat
-                     467 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-01EA 200B02          468 +1         jb      SKRH, $+5
-01ED 0204A9          469 +1         ljmp    ERR_SKRH
-01F0 00              470 +1         nop
-01F1 200AF3          472            jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
-01F4 D22F            473            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
-01F6 12051A          474            lcall   WRITEPORTS      ;
-01F9 E528            475            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-01FB 5408            476            anl     A, #00001000b ;-;
-01FD 600A            477            jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
-01FF D223            478            setb    SLOW            ;       Ak ano, spomalme
-0201 C222            479            clr     FAST            ; 
-0203 12051A          480            lcall   WRITEPORTS      ;
-0206 020209          481            jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
-0209                 482    UP2_MB1:
-0209 1204D5          483            lcall   READPORTS       ; nacitanie dat
-                     484 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-020C 200B02          485 +1         jb      SKRH, $+5
-020F 0204A9          486 +1         ljmp    ERR_SKRH
-0212 00              487 +1         nop
-0213 2009F3          489            jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
-0216 E528            490            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-0218 5408            491            anl     A, #00001000b ;-;
-021A 7003            492            jnz     U2_MB1C       ;-; Ak nie, chod do stavu UP3
-021C 0202F4          493            ljmp    UP3             ; |
-021F C220            494    U2_MB1C:clr     UP              ; zastav motor
-0221 D23A            495            setb    UPOld           ;       (a zalohuj)
-0223 C23B            496            clr     DOWNOld         ;       (a zalohuj)
-0225 C222            497            clr     FAST            ; 
-0227 12051A          498            lcall   WRITEPORTS      ; 
-022A 020295          499            jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
-022D                 500    DOWN2:
-                     501 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+01D3 C224            459 +1         clr     FLED1             
+01D5 C225            460 +1         clr     FLED2                
+01D7 C226            461 +1         clr     FLED3           
+01D9 C227            462 +1         clr     FLED4           
+01DB D225            463 +1         setb    FLED2
+01DD 120589          464 +1         lcall   WRITEPORTS
+01E0 120544          466            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+01E3 3009FA          467            jnb     MB1, $-3        ;  |
+01E6 120544          468    UP2A:   lcall   READPORTS       ; nacitanie dat
+                     469 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+01E9 200B02          470 +1         jb      SKRH, $+5
+01EC 02050F          471 +1         ljmp    ERR_SKRH
+01EF 00              472 +1         nop
+                     474    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+01F0 200AF3          475            jb      MB2, UP2A     ;-; mame uz 1. spomalovaciu clonku?
+01F3 120544          476            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+01F6 300AFA          477            jnb     MB2, $-3        ;       
+01F9 D22E            478            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+01FB 120589          479            lcall   WRITEPORTS      ;
+01FE 020201          480            jmp     UP2_MB2       ;-; a prejdi do stavu UP2_MB2
+0201                 481    UP2_MB2:
+0201 120544          482            lcall   READPORTS       ; nacitanie dat
+                     483 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+0204 200B02          484 +1         jb      SKRH, $+5
+0207 02050F          485 +1         ljmp    ERR_SKRH
+020A 00              486 +1         nop
+                     488 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+020B 200902          489 +1         jb      MB1, $+5
+020E 0204D3          490 +1         ljmp    ERR_1SPOM_C
+0211 00              491 +1         nop
+0212 200AEC          493            jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
+0215 D22F            494            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+0217 120589          495            lcall   WRITEPORTS      ;
+021A E528            496            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+021C 5408            497            anl     A, #00001000b ;-;
+021E 600A            498            jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
+0220 D223            499            setb    SLOW            ;       Ak ano, spomalme
+0222 C222            500            clr     FAST            ; 
+0224 120589          501            lcall   WRITEPORTS      ;
+0227 02022A          502            jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
+022A                 503    UP2_MB1:
+022A 120544          504            lcall   READPORTS       ; nacitanie dat
+                     505 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+022D 200B02          506 +1         jb      SKRH, $+5
+0230 02050F          507 +1         ljmp    ERR_SKRH
+0233 00              508 +1         nop
+                     510 +1         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spo
+                                                                               malovaciu) <<<
+0234 200A02          511 +1         jb      MB2, $+5
+0237 0204F1          512 +1         ljmp    ERR_ZAST_C
+023A 00              513 +1         nop
+023B 2009EC          515            jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
+023E E528            516            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+0240 5408            517            anl     A, #00001000b ;-;
+0242 7003            518            jnz     U2_MB1C       ;-; Ak nie, chod do stavu UP3
+0244 020327          519            ljmp    UP3             ; |
+VYTAH/ORI DÆ*©4Ì*©4                                                                                          PAGE 10
+
+0247 C220            520    U2_MB1C:clr     UP              ; zastav motor
+0249 D23A            521            setb    UPOld           ;       (a zalohuj)
+024B C23B            522            clr     DOWNOld         ;       (a zalohuj)
+024D C222            523            clr     FAST            ; 
+024F 120589          524            lcall   WRITEPORTS      ; 
+0252 0202C8          525            jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
+0255                 526    DOWN2:
+                     527 +1                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-022D C22F            502 +1         clr     LEDU            
-022F C22E            503 +1         clr     LEDD 
-0231 C224            504 +1         clr     FLED1             
-0233 C225            505 +1         clr     FLED2                
-0235 C226            506 +1         clr     FLED3           
-0237 C227            507 +1         clr     FLED4           
-0239 D225            508 +1         setb    FLED2
-023B 12051A          509 +1         lcall   WRITEPORTS
-023E 1204D5          511            lcall   READPORTS       ; nacitanie dat
-                     512 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-0241 200C02          513 +1         jb      SKRD, $+5
-0244 02049A          514 +1         ljmp    ERR_SKRD
-0247 00              515 +1         nop
-0248 200AE2          517            jb      MB2, DOWN2    ;-; mame uz 1. spomalovaciu clonku?
-024B 1204D5          518            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-024E 300AFA          519            jnb     MB2, $-3        ;       
-0251 D22F            520            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-0253 12051A          521            lcall   WRITEPORTS      ;
-0256 020259          522            jmp     DOWN2_MB2     ;-; a prejdi do stavu DOWN2_MB2
-VYTAH/ORI
-&D6*©4>*©4                                                                                          PAGE 10
+0255 C22F            528 +1         clr     LEDU            
+0257 C22E            529 +1         clr     LEDD 
+0259 C224            530 +1         clr     FLED1             
+025B C225            531 +1         clr     FLED2                
+025D C226            532 +1         clr     FLED3           
+025F C227            533 +1         clr     FLED4           
+0261 D225            534 +1         setb    FLED2
+0263 120589          535 +1         lcall   WRITEPORTS
+0266 120544          537            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+0269 3009FA          538            jnb     MB1, $-3        ;  |
+026C 120544          539            lcall   READPORTS       ; nacitanie dat
+                     540 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+026F 200C02          541 +1         jb      SKRD, $+5
+0272 020500          542 +1         ljmp    ERR_SKRD
+0275 00              543 +1         nop
+                     545    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+0276 200ADC          546            jb      MB2, DOWN2    ;-; mame uz 1. spomalovaciu clonku?
+0279 120544          547            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+027C 300AFA          548            jnb     MB2, $-3        ;       
+027F D22F            549            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+0281 120589          550            lcall   WRITEPORTS      ;
+0284 020287          551            jmp     DOWN2_MB2     ;-; a prejdi do stavu DOWN2_MB2
+0287                 552    DOWN2_MB2:
+0287 120544          553            lcall   READPORTS       ; nacitanie dat
+                     554 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+028A 200C02          555 +1         jb      SKRD, $+5
+028D 020500          556 +1         ljmp    ERR_SKRD
+0290 00              557 +1         nop
+                     559 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+0291 200902          560 +1         jb      MB1, $+5
+0294 0204D3          561 +1         ljmp    ERR_1SPOM_C
+0297 00              562 +1         nop
+0298 200AEC          564            jb      MB2, DOWN2_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+029B D22E            565            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+029D 120589          566            lcall   WRITEPORTS      ;
+02A0 E528            567            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+02A2 5402            568            anl     A, #00000010b ;-;
+02A4 600A            569            jz      DOWN2_MB1     ;-;       Ak nie, chod do stavu DOWN2_MB1
+02A6 D223            570            setb    SLOW            ;       Ak ano, spomalme
+02A8 C222            571            clr     FAST            ; 
+02AA 120589          572            lcall   WRITEPORTS      ;
+02AD 0202B0          573            jmp     DOWN2_MB1     ;-; a prejdi do stavu DOWN2_MB1
+02B0                 574    DOWN2_MB1:    
+02B0 120544          575            lcall   READPORTS       ; nacitanie dat
+02B3 300C05          576            jnb     SKRD, D2_MB1C   ; Sme na hornej porovnavacej clonke?
+02B6 300902          577            jnb     MB1, D2_MB1C  ;-; Sme na zastavovacej clonke?
+02B9 80F5            578            jmp     DOWN2_MB1       ; Ak sme nechytili ani jednu clonku, opakujeme
+VYTAH/ORI 
+D&,©4,,©4                                                                                          PAGE 11
 
-0259                 523    DOWN2_MB2:
-0259 1204D5          524            lcall   READPORTS       ; nacitanie dat
-                     525 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-025C 200C02          526 +1         jb      SKRD, $+5
-025F 02049A          527 +1         ljmp    ERR_SKRD
-0262 00              528 +1         nop
-0263 200AF3          530            jb      MB2, DOWN2_MB2;-; mame uz aj druhu spomalovaciu clonku?          
-0266 D22E            531            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
-0268 12051A          532            lcall   WRITEPORTS      ;
-026B E528            533            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-026D 5402            534            anl     A, #00000010b ;-;
-026F 600A            535            jz      DOWN2_MB1     ;-;       Ak nie, chod do stavu DOWN2_MB1
-0271 D223            536            setb    SLOW            ;       Ak ano, spomalme
-0273 C222            537            clr     FAST            ; 
-0275 12051A          538            lcall   WRITEPORTS      ;
-0278 02027B          539            jmp     DOWN2_MB1     ;-; a prejdi do stavu DOWN2_MB1
-027B                 540    DOWN2_MB1:    
-027B 1204D5          541            lcall   READPORTS       ; nacitanie dat
-                     542 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-027E 200C02          543 +1         jb      SKRD, $+5
-0281 02049A          544 +1         ljmp    ERR_SKRD
-0284 00              545 +1         nop
-0285 2009F3          547            jb      MB1, DOWN2_MB1;-; Sme na zastavovacej clonke?
-0288 C221            548            clr     DOWN            ; zastav motor
-028A D23B            549            setb    DOWNOld         ;       (a zalohuj)
-028C C23A            550            clr     UPOld           ;       (a zalohuj)
-028E C222            551            clr     FAST            ; 
-0290 12051A          552            lcall   WRITEPORTS      ; 
-0293 01BF            553            jmp     FLOOR1        ;-; a prejdi do stavu FLOOR2      
-                     554    
-                     555    
-                     556    ;------------------------------------------------------------------------------- << 3. posch
+02BB C221            579    D2_MB1C:clr     DOWN            ; zastav motor
+02BD D23B            580            setb    DOWNOld         ;       (a zalohuj)
+02BF C23A            581            clr     UPOld           ;       (a zalohuj)
+02C1 C222            582            clr     FAST            ; 
+02C3 120589          583            lcall   WRITEPORTS      ; 
+02C6 01BF            584            jmp     FLOOR1        ;-; a prejdi do stavu FLOOR2      
+                     585    
+                     586    
+                     587    ;------------------------------------------------------------------------------- << 3. posch
                                                                                odie >>
-                     557    
-0295                 558    FLOOR3:
-                     559 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+                     588    
+02C8                 589    FLOOR3:
+                     590 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-0295 C22F            560 +1         clr     LEDU            
-0297 C22E            561 +1         clr     LEDD 
-0299 C224            562 +1         clr     FLED1             
-029B C225            563 +1         clr     FLED2                
-029D C226            564 +1         clr     FLED3           
-029F C227            565 +1         clr     FLED4           
-02A1 D226            566 +1         setb    FLED3
-02A3 12051A          567 +1         lcall   WRITEPORTS
-02A6 1204C4          569            lcall   WAITFORTIMER    ; simulacia TIMERu
-02A9 1204D5          570    F3S:    lcall   READPORTS     ;-; nacitanie dat
-02AC C21B            571            clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
-02AE 12051A          572            lcall   WRITEPORTS      ;
-                     573    
-02B1 7410            574            mov     A, #00010000b ;-; Default predpokladam, ze idem hore (na 4.)
-02B3 203A01          575            jb      UPOld, F3OK   ;-;   Je to pravda? Naozaj idem hore?
-02B6 F4              576            cpl     A               ;       Ak nie, znegujeme
-02B7 F5F0            577    F3OK:   mov     B, A            ; Masku dame do Bcka
-                     578            
-                     579            ; Pohyb v jednom smere (nevieme v ktorom)
-02B9 53F016          580            anl     B, #00010110b  ;-; este ju kozmeticky upravime
-02BC E528            581            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
-VYTAH/ORI DJ+©4                                                                                              PAGE 11
-
-                                                                               om stojim
-02BE 55F0            582            anl     A, B            ; tu ju pouzijeme       
-02C0 7014            583            jnz     F3              ; nasli sme poschodie v tomto smere
-                     584            ; Pohyb v opacnom smere (nevieme v ktorom)
-02C2 B23A            585            cpl     UPOld           ;  Znegujem stary posun
-02C4 B23B            586            cpl     DOWNOld         ;  |
-02C6 E5F0            587            mov     A, B            ;  Znegujeme masku
-02C8 F4              588            cpl     A               ;  |
-02C9 F5F0            589            mov     B, A            ;  |
-02CB 53F016          590            anl     B, #00010110b  ;-; este ju kozmeticky upravime
-02CE E528            591            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
-                                                                               om stojim
-02D0 55F0            592            anl     A, B            ; tu ju pouzijeme       
-02D2 7002            593            jnz     F3              ; nasli sme poschodie v tomto smere
-                     594            
-02D4 80D3            595            jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
-02D6 203A03          596    F3:     jb      UPOld, F3UP     ;   
-02D9 0202E8          597            jmp     F3DOWN          ;
-02DC D220            598    F3UP:   setb    UP              ; rychly pohyb hore
-02DE D222            599            setb    FAST            ; 
-02E0 C223            600            clr     SLOW            ;
-02E2 12051A          601            lcall   WRITEPORTS      ; 
-02E5 0202F4          602            jmp     UP3           ;-; prejdi do stavu UP2    
-02E8 D221            603    F3DOWN: setb    DOWN            ; rychly pohyb hore
-02EA D222            604            setb    FAST            ; 
-02EC C223            605            clr     SLOW            ;
-02EE 12051A          606            lcall   WRITEPORTS      ; 
-02F1 02035D          607            jmp     DOWN3         ;-; prejdi do stavu UP2    
-                     608    
+02C8 C22F            591 +1         clr     LEDU            
+02CA C22E            592 +1         clr     LEDD 
+02CC C224            593 +1         clr     FLED1             
+02CE C225            594 +1         clr     FLED2                
+02D0 C226            595 +1         clr     FLED3           
+02D2 C227            596 +1         clr     FLED4           
+02D4 D226            597 +1         setb    FLED3
+02D6 120589          598 +1         lcall   WRITEPORTS
+02D9 120533          600            lcall   WAITFORTIMER    ; simulacia TIMERu
+02DC 120544          601    F3S:    lcall   READPORTS     ;-; nacitanie dat
+02DF C21B            602            clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
+02E1 120589          603            lcall   WRITEPORTS      ;
+                     604    
+02E4 7410            605            mov     A, #00010000b ;-; Default predpokladam, ze idem hore (na 4.)
+02E6 203A01          606            jb      UPOld, F3OK   ;-;   Je to pravda? Naozaj idem hore?
+02E9 F4              607            cpl     A               ;       Ak nie, znegujeme
+02EA F5F0            608    F3OK:   mov     B, A            ; Masku dame do Bcka
                      609            
-                     610            
-                     611            
-                     612    ;        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na kto
-                                                                               rom stojim
-                     613    ;        anl     A, #00010000b ;-;
-                     614    ;        jz      F3S           ;-; ak nie, opakuj
-                     615    ;        setb    UP              ; rychly pohyb hore
-                     616    ;        setb    FAST            ; 
-                     617    ;        lcall   WRITEPORTS      ; 
-                     618    ;        jmp     UP3           ;-; prejdi do stavu UP3        
-02F4                 619    UP3:
-                     620 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
-                                                                               ny", nechaj len aktualne poschodie)
-02F4 C22F            621 +1         clr     LEDU            
-02F6 C22E            622 +1         clr     LEDD 
-02F8 C224            623 +1         clr     FLED1             
-02FA C225            624 +1         clr     FLED2                
-02FC C226            625 +1         clr     FLED3           
-02FE C227            626 +1         clr     FLED4           
-0300 D226            627 +1         setb    FLED3
-0302 12051A          628 +1         lcall   WRITEPORTS
-0305 1204D5          630    UP3A:   lcall   READPORTS       ; nacitanie dat
-                     631 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-0308 200B02          632 +1         jb      SKRH, $+5
-030B 0204A9          633 +1         ljmp    ERR_SKRH
-030E 00              634 +1         nop
-030F 200AF3          636            jb      MB2, UP3A     ;-; mame uz 1. spomalovaciu clonku?
-0312 1204D5          637            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-VYTAH/ORI eDâ+©4ê+©4                                                                                          PAGE 12
+                     610            ; Pohyb v jednom smere (nevieme v ktorom)
+02EC 53F016          611            anl     B, #00010110b  ;-; este ju kozmeticky upravime
+02EF E528            612            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
+                                                                               om stojim
+02F1 55F0            613            anl     A, B            ; tu ju pouzijeme       
+02F3 7014            614            jnz     F3              ; nasli sme poschodie v tomto smere
+                     615            ; Pohyb v opacnom smere (nevieme v ktorom)
+02F5 B23A            616            cpl     UPOld           ;  Znegujem stary posun
+02F7 B23B            617            cpl     DOWNOld         ;  |
+02F9 E5F0            618            mov     A, B            ;  Znegujeme masku
+02FB F4              619            cpl     A               ;  |
+02FC F5F0            620            mov     B, A            ;  |
+02FE 53F016          621            anl     B, #00010110b  ;-; este ju kozmeticky upravime
+0301 E528            622            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktor
+                                                                               om stojim
+0303 55F0            623            anl     A, B            ; tu ju pouzijeme       
+0305 7002            624            jnz     F3              ; nasli sme poschodie v tomto smere
+                     625            
+0307 80D3            626            jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
+0309 203A03          627    F3:     jb      UPOld, F3UP     ;   
+030C 02031B          628            jmp     F3DOWN          ;
+030F D220            629    F3UP:   setb    UP              ; rychly pohyb hore
+0311 D222            630            setb    FAST            ; 
+0313 C223            631            clr     SLOW            ;
+0315 120589          632            lcall   WRITEPORTS      ; 
+0318 020327          633            jmp     UP3           ;-; prejdi do stavu UP2    
+VYTAH/ORI jD‚,©4                                                                                              PAGE 12
 
-0315 300AFA          638            jnb     MB2, $-3        ;       
-0318 D22E            639            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-031A 12051A          640            lcall   WRITEPORTS      ;
-031D 020320          641            jmp     UP3_MB2       ;-; a prejdi do stavu UP3_MB2
-0320                 642    UP3_MB2:
-0320 1204D5          643            lcall   READPORTS       ; nacitanie dat
-                     644 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-0323 200B02          645 +1         jb      SKRH, $+5
-0326 0204A9          646 +1         ljmp    ERR_SKRH
-0329 00              647 +1         nop
-032A 200AF3          649            jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
-032D D22F            650            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
-032F 12051A          651            lcall   WRITEPORTS      ;
-0332 E528            652            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-0334 5410            653            anl     A, #00010000b ;-;
-0336 600A            654            jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
-0338 D223            655            setb    SLOW            ;       Ak ano, spomalme
-033A C222            656            clr     FAST            ; 
-033C 12051A          657            lcall   WRITEPORTS      ;
-033F 020342          658            jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
-0342                 659    UP3_MB1:
-0342 1204D5          660            lcall   READPORTS       ; nacitanie dat
-                     661 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-0345 200B02          662 +1         jb      SKRH, $+5
-0348 0204A9          663 +1         ljmp    ERR_SKRH
-034B 00              664 +1         nop
-034C 2009F3          666            jb      MB1, UP3_MB1  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripa
+031B D221            634    F3DOWN: setb    DOWN            ; rychly pohyb hore
+031D D222            635            setb    FAST            ; 
+031F C223            636            clr     SLOW            ;
+0321 120589          637            lcall   WRITEPORTS      ; 
+0324 02039B          638            jmp     DOWN3         ;-; prejdi do stavu UP2    
+                     639    
+                     640            
+                     641            
+                     642            
+                     643    ;        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na kto
+                                                                               rom stojim
+                     644    ;        anl     A, #00010000b ;-;
+                     645    ;        jz      F3S           ;-; ak nie, opakuj
+                     646    ;        setb    UP              ; rychly pohyb hore
+                     647    ;        setb    FAST            ; 
+                     648    ;        lcall   WRITEPORTS      ; 
+                     649    ;        jmp     UP3           ;-; prejdi do stavu UP3        
+0327                 650    UP3:
+                     651 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+                                                                               ny", nechaj len aktualne poschodie)
+0327 C22F            652 +1         clr     LEDU            
+0329 C22E            653 +1         clr     LEDD 
+032B C224            654 +1         clr     FLED1             
+032D C225            655 +1         clr     FLED2                
+032F C226            656 +1         clr     FLED3           
+0331 C227            657 +1         clr     FLED4           
+0333 D226            658 +1         setb    FLED3
+0335 120589          659 +1         lcall   WRITEPORTS
+0338 120544          661            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+033B 3009FA          662            jnb     MB1, $-3        ;  |
+033E 120544          663    UP3A:   lcall   READPORTS       ; nacitanie dat
+                     664 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+0341 200B02          665 +1         jb      SKRH, $+5
+0344 02050F          666 +1         ljmp    ERR_SKRH
+0347 00              667 +1         nop
+                     669    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+0348 200AF3          670            jb      MB2, UP3A     ;-; mame uz 1. spomalovaciu clonku?
+034B 120544          671            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+034E 300AFA          672            jnb     MB2, $-3        ;       
+0351 D22E            673            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+0353 120589          674            lcall   WRITEPORTS      ;
+0356 020359          675            jmp     UP3_MB2       ;-; a prejdi do stavu UP3_MB2
+0359                 676    UP3_MB2:
+0359 120544          677            lcall   READPORTS       ; nacitanie dat
+                     678 +1         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+035C 200B02          679 +1         jb      SKRH, $+5
+035F 02050F          680 +1         ljmp    ERR_SKRH
+0362 00              681 +1         nop
+                     683 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+0363 200902          684 +1         jb      MB1, $+5
+0366 0204D3          685 +1         ljmp    ERR_1SPOM_C
+0369 00              686 +1         nop
+036A 200AEC          688            jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
+036D D22F            689            setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+036F 120589          690            lcall   WRITEPORTS      ;
+0372 E528            691            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+VYTAH/ORICDÒ-©4Ø-©4                                                                                          PAGE 13
+
+0374 5410            692            anl     A, #00010000b ;-;
+0376 600A            693            jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
+0378 D223            694            setb    SLOW            ;       Ak ano, spomalme
+037A C222            695            clr     FAST            ; 
+037C 120589          696            lcall   WRITEPORTS      ;
+037F 020382          697            jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
+0382                 698    UP3_MB1:
+0382 120544          699            lcall   READPORTS       ; nacitanie dat
+                     700    ;        ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spo
+                                                                               malovaciu) <<<
+0385 300B05          701            jnb     SKRH, U3_MB1C  ;  Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdo
+                                                                               m pripade)
+0388 300902          702            jnb     MB1, U3_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripa
                                                                                de)
-034F C220            667            clr     UP              ; zastav motor
-0351 D23A            668            setb    UPOld           ;       (a zalohuj)
-0353 C23B            669            clr     DOWNOld         ;       (a zalohuj)
-0355 C222            670            clr     FAST            ; 
-0357 12051A          671            lcall   WRITEPORTS      ; 
-035A 0203CE          672            jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
-035D                 673    DOWN3:
-                     674 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+038B 80F5            703            jmp     UP3_MB1         ; Ak sme nechytili ani jednu clonku, opakujeme. 
+038D C220            704    U3_MB1C:clr     UP              ; zastav motor
+038F D23A            705            setb    UPOld           ;       (a zalohuj)
+0391 C23B            706            clr     DOWNOld         ;       (a zalohuj)
+0393 C222            707            clr     FAST            ; 
+0395 120589          708            lcall   WRITEPORTS      ; 
+0398 020420          709            jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
+039B                 710    DOWN3:
+                     711 +1                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-035D C22F            675 +1         clr     LEDU            
-035F C22E            676 +1         clr     LEDD 
-0361 C224            677 +1         clr     FLED1             
-0363 C225            678 +1         clr     FLED2                
-0365 C226            679 +1         clr     FLED3           
-0367 C227            680 +1         clr     FLED4           
-0369 D226            681 +1         setb    FLED3
-036B 12051A          682 +1         lcall   WRITEPORTS
-036E 1204D5          684            lcall   READPORTS       ; nacitanie dat
-                     685 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-0371 200C02          686 +1         jb      SKRD, $+5
-0374 02049A          687 +1         ljmp    ERR_SKRD
-0377 00              688 +1         nop
-0378 200AE2          690            jb      MB2, DOWN3    ;-; mame uz 1. spomalovaciu clonku?
-037B 1204D5          691            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-037E 300AFA          692            jnb     MB2, $-3        ;       
-0381 D22F            693            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-0383 12051A          694            lcall   WRITEPORTS      ;
-0386 020389          695            jmp     DOWN3_MB2     ;-; a prejdi do stavu DOWN3_MB2
-0389                 696    DOWN3_MB2:
-0389 1204D5          697            lcall   READPORTS       ; nacitanie dat
-VYTAH/ORIYDž-©4¦-©4                                                                                          PAGE 13
+039B C22F            712 +1         clr     LEDU            
+039D C22E            713 +1         clr     LEDD 
+039F C224            714 +1         clr     FLED1             
+03A1 C225            715 +1         clr     FLED2                
+03A3 C226            716 +1         clr     FLED3           
+03A5 C227            717 +1         clr     FLED4           
+03A7 D226            718 +1         setb    FLED3
+03A9 120589          719 +1         lcall   WRITEPORTS
+03AC 120544          721            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+03AF 3009FA          722            jnb     MB1, $-3        ;  |
+03B2 120544          723            lcall   READPORTS       ; nacitanie dat
+                     724 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+03B5 200C02          725 +1         jb      SKRD, $+5
+03B8 020500          726 +1         ljmp    ERR_SKRD
+03BB 00              727 +1         nop
+                     729    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+03BC 200ADC          730            jb      MB2, DOWN3    ;-; mame uz 1. spomalovaciu clonku?
+03BF 120544          731            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+03C2 300AFA          732            jnb     MB2, $-3        ;       
+03C5 D22F            733            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+03C7 120589          734            lcall   WRITEPORTS      ;
+03CA 0203CD          735            jmp     DOWN3_MB2     ;-; a prejdi do stavu DOWN3_MB2
+03CD                 736    DOWN3_MB2:
+03CD 120544          737            lcall   READPORTS       ; nacitanie dat
+                     738 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+03D0 200C02          739 +1         jb      SKRD, $+5
+03D3 020500          740 +1         ljmp    ERR_SKRD
+03D6 00              741 +1         nop
+                     743 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+03D7 200902          744 +1         jb      MB1, $+5
+03DA 0204D3          745 +1         ljmp    ERR_1SPOM_C
+03DD 00              746 +1         nop
+VYTAH/ORI.D2/©48/©4                                                                                          PAGE 14
 
-                     698 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-038C 200C02          699 +1         jb      SKRD, $+5
-038F 02049A          700 +1         ljmp    ERR_SKRD
-0392 00              701 +1         nop
-0393 200AF3          703            jb      MB2, DOWN3_MB2;-; mame uz aj druhu spomalovaciu clonku?          
-0396 D22E            704            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
-0398 12051A          705            lcall   WRITEPORTS      ;
-039B E528            706            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-039D 5404            707            anl     A, #00000100b ;-;
-039F 600A            708            jz      DOWN3_MB1     ;-;       Ak nie, chod do stavu DOWN3_MB1
-03A1 D223            709            setb    SLOW            ;       Ak ano, spomalme
-03A3 C222            710            clr     FAST            ; 
-03A5 12051A          711            lcall   WRITEPORTS      ;
-03A8 0203AB          712            jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
-03AB                 713    DOWN3_MB1:    
-03AB 1204D5          714            lcall   READPORTS       ; nacitanie dat
-                     715 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-03AE 200C02          716 +1         jb      SKRD, $+5
-03B1 02049A          717 +1         ljmp    ERR_SKRD
-03B4 00              718 +1         nop
-03B5 2009F3          720            jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
-03B8 E528            721            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-03BA 5404            722            anl     A, #00000100b ;-;
-03BC 7003            723            jnz     D3_MB1C         ; Ak nie, chod do stavu DOWN2
-03BE 02022D          724            ljmp    DOWN2         ;-; |
-03C1 C221            725    D3_MB1C:clr     DOWN            ; zastav motor
-03C3 D23B            726            setb    DOWNOld         ;       (a zalohuj)
-03C5 C23A            727            clr     UPOld           ;       (a zalohuj)
-03C7 C222            728            clr     FAST            ; 
-03C9 12051A          729            lcall   WRITEPORTS      ; 
-03CC 215C            730            jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2      
-                     731          
-                     732            
-                     733    ;------------------------------------------------------------------------------- << 4. posch
+03DE 200AEC          748            jb      MB2, DOWN3_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+03E1 D22E            749            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+03E3 120589          750            lcall   WRITEPORTS      ;
+03E6 E528            751            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+03E8 5404            752            anl     A, #00000100b ;-;
+03EA 600A            753            jz      DOWN3_MB1     ;-;       Ak nie, chod do stavu DOWN3_MB1
+03EC D223            754            setb    SLOW            ;       Ak ano, spomalme
+03EE C222            755            clr     FAST            ; 
+03F0 120589          756            lcall   WRITEPORTS      ;
+03F3 0203F6          757            jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
+03F6                 758    DOWN3_MB1:    
+03F6 120544          759            lcall   READPORTS       ; nacitanie dat
+                     760 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+03F9 200C02          761 +1         jb      SKRD, $+5
+03FC 020500          762 +1         ljmp    ERR_SKRD
+03FF 00              763 +1         nop
+                     765 +1         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spo
+                                                                               malovaciu) <<<
+0400 200A02          766 +1         jb      MB2, $+5
+0403 0204F1          767 +1         ljmp    ERR_ZAST_C
+0406 00              768 +1         nop
+0407 2009EC          770            jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
+040A E528            771            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+040C 5404            772            anl     A, #00000100b ;-;
+040E 7003            773            jnz     D3_MB1C         ; Ak nie, chod do stavu DOWN2
+0410 020255          774            ljmp    DOWN2         ;-; |
+0413 C221            775    D3_MB1C:clr     DOWN            ; zastav motor
+0415 D23B            776            setb    DOWNOld         ;       (a zalohuj)
+0417 C23A            777            clr     UPOld           ;       (a zalohuj)
+0419 C222            778            clr     FAST            ; 
+041B 120589          779            lcall   WRITEPORTS      ; 
+041E 2170            780            jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2      
+                     781          
+                     782            
+                     783    ;------------------------------------------------------------------------------- << 4. posch
                                                                                odie >>
-                     734    
-03CE                 735    FLOOR4:
-                     736 +1                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+                     784    
+0420                 785    FLOOR4:
+                     786 +1                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-03CE C22F            737 +1         clr     LEDU            
-03D0 C22E            738 +1         clr     LEDD 
-03D2 C224            739 +1         clr     FLED1             
-03D4 C225            740 +1         clr     FLED2                
-03D6 C226            741 +1         clr     FLED3           
-03D8 C227            742 +1         clr     FLED4           
-03DA D227            743 +1         setb    FLED4
-03DC 12051A          744 +1         lcall   WRITEPORTS
-03DF 1204C4          746            lcall   WAITFORTIMER    ; simulacia TIMERu
-03E2 1204D5          747    F4S:    lcall   READPORTS     ;-; nacitanie dat
-03E5 C21C            748            clr     PKO4          ;-; vynulovanie volby poschodia na ktorom stojim
-03E7 12051A          749            lcall   WRITEPORTS      ;
-03EA E528            750            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco menej ako poschodie na kto
+0420 C22F            787 +1         clr     LEDU            
+0422 C22E            788 +1         clr     LEDD 
+0424 C224            789 +1         clr     FLED1             
+0426 C225            790 +1         clr     FLED2                
+0428 C226            791 +1         clr     FLED3           
+042A C227            792 +1         clr     FLED4           
+042C D227            793 +1         setb    FLED4
+042E 120589          794 +1         lcall   WRITEPORTS
+0431 120533          796            lcall   WAITFORTIMER    ; simulacia TIMERu
+0434 120544          797    F4S:    lcall   READPORTS     ;-; nacitanie dat
+0437 C21C            798            clr     PKO4          ;-; vynulovanie volby poschodia na ktorom stojim
+0439 120589          799            lcall   WRITEPORTS      ;
+043C E528            800            mov     A, INPORTA      ; zistenie, cibolo stlacene nieco menej ako poschodie na kto
                                                                                rom stojim
-03EC 540E            751            anl     A, #00001110b ;-;
-03EE 60F2            752            jz      F4S           ;-; ak nie, opakuj
-03F0 D221            753            setb    DOWN            ; rychly pohyb dole
-03F2 D222            754            setb    FAST            ;
-03F4 C223            755            clr     SLOW            ; 
-VYTAH/ORI FDV.©4                                                                                              PAGE 14
+043E 540E            801            anl     A, #00001110b ;-;
+0440 60F2            802            jz      F4S           ;-; ak nie, opakuj
+0442 D221            803            setb    DOWN            ; rychly pohyb dole
+0444 D222            804            setb    FAST            ;
+VYTAH/ORI DF0©4                                                                                              PAGE 15
 
-03F6 12051A          756            lcall   WRITEPORTS      ; 
-03F9 0203FC          757            jmp     DOWN4         ;-; prejdi do stavu DOWN4 
-03FC                 758    DOWN4:
-                     759 +1                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
+0446 C223            805            clr     SLOW            ; 
+0448 120589          806            lcall   WRITEPORTS      ; 
+044B 02044E          807            jmp     DOWN4         ;-; prejdi do stavu DOWN4 
+044E                 808    DOWN4:
+                     809 +1                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabi
                                                                                ny", nechaj len aktualne poschodie)
-03FC C22F            760 +1         clr     LEDU            
-03FE C22E            761 +1         clr     LEDD 
-0400 C224            762 +1         clr     FLED1             
-0402 C225            763 +1         clr     FLED2                
-0404 C226            764 +1         clr     FLED3           
-0406 C227            765 +1         clr     FLED4           
-0408 D227            766 +1         setb    FLED4
-040A 12051A          767 +1         lcall   WRITEPORTS
-040D 1204D5          769            lcall   READPORTS       ; nacitanie dat
-                     770 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-0410 200C02          771 +1         jb      SKRD, $+5
-0413 02049A          772 +1         ljmp    ERR_SKRD
-0416 00              773 +1         nop
-0417 200AE2          775            jb      MB2, DOWN4    ;-; mame uz 1. spomalovaciu clonku?
-041A 1204D5          776            lcall   READPORTS       ; ak ano, sme z nej uz prec?
-041D 300AFA          777            jnb     MB2, $-3        ;       
-0420 D22F            778            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
-0422 12051A          779            lcall   WRITEPORTS      ;
-0425 020428          780            jmp     DOWN4_MB2     ;-; a prejdi do stavu DOWN4_MB2
-0428                 781    DOWN4_MB2:
-0428 1204D5          782            lcall   READPORTS       ; nacitanie dat
-                     783 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-042B 200C02          784 +1         jb      SKRD, $+5
-042E 02049A          785 +1         ljmp    ERR_SKRD
-0431 00              786 +1         nop
-0432 200AF3          788            jb      MB2, DOWN4_MB2;-; mame uz aj druhu spomalovaciu clonku?          
-0435 D22E            789            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
-0437 12051A          790            lcall   WRITEPORTS      ;
-043A E528            791            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-043C 5408            792            anl     A, #00001000b ;-;
-043E 600A            793            jz      DOWN4_MB1     ;-;       Ak nie, chod do stavu DOWN4_MB1
-0440 D223            794            setb    SLOW            ;       Ak ano, spomalme
-0442 C222            795            clr     FAST            ; 
-0444 12051A          796            lcall   WRITEPORTS      ;
-0447 02044A          797            jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
-044A                 798    DOWN4_MB1:    
-044A 1204D5          799            lcall   READPORTS       ; nacitanie dat
-                     800 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
-044D 200C02          801 +1         jb      SKRD, $+5
-0450 02049A          802 +1         ljmp    ERR_SKRD
-0453 00              803 +1         nop
-0454 2009F3          805            jb      MB1, DOWN4_MB1;-; Sme na zastavovacej clonke?
-0457 E528            806            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-0459 5408            807            anl     A, #00001000b ;-;
-045B 7003            808            jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
-045D 02035D          809            ljmp    DOWN3         ;-; |
-0460 C221            810    D4_MB1C:clr     DOWN            ; zastav motor
-0462 D23B            811            setb    DOWNOld         ;       (a zalohuj)
-0464 C23A            812            clr     UPOld           ;       (a zalohuj)
-0466 C222            813            clr     FAST            ; 
-0468 12051A          814            lcall   WRITEPORTS      ; 
-046B 4195            815            jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
-                     816                    
-VYTAH/ORI:D¦/©4®/©4                                                                                          PAGE 15
+044E C22F            810 +1         clr     LEDU            
+0450 C22E            811 +1         clr     LEDD 
+0452 C224            812 +1         clr     FLED1             
+0454 C225            813 +1         clr     FLED2                
+0456 C226            814 +1         clr     FLED3           
+0458 C227            815 +1         clr     FLED4           
+045A D227            816 +1         setb    FLED4
+045C 120589          817 +1         lcall   WRITEPORTS
+045F 120544          819            lcall   READPORTS       ;  | Odisli sme uz zo zastavovacej clonky nasho poschodia?
+0462 3009FA          820            jnb     MB1, $-3        ;  |
+                     821            
+0465 120544          822            lcall   READPORTS       ; nacitanie dat
+                     823 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+0468 200C02          824 +1         jb      SKRD, $+5
+046B 020500          825 +1         ljmp    ERR_SKRD
+046E 00              826 +1         nop
+                     828    ;        ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na 
+                                                                               zastavovaciu) <<<
+046F 200ADC          829            jb      MB2, DOWN4    ;-; mame uz 1. spomalovaciu clonku?
+0472 120544          830            lcall   READPORTS       ; ak ano, sme z nej uz prec?
+0475 300AFA          831            jnb     MB2, $-3        ;       
+0478 D22F            832            setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+047A 120589          833            lcall   WRITEPORTS      ;
+047D 020480          834            jmp     DOWN4_MB2     ;-; a prejdi do stavu DOWN4_MB2
+0480                 835    DOWN4_MB2:
+0480 120544          836            lcall   READPORTS       ; nacitanie dat
+                     837 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+0483 200C02          838 +1         jb      SKRD, $+5
+0486 020500          839 +1         ljmp    ERR_SKRD
+0489 00              840 +1         nop
+                     842 +1         ljnb    MB1, ERR_1SPOM_C; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zas
+                                                                               tavovaciu) <<<
+048A 200902          843 +1         jb      MB1, $+5
+048D 0204D3          844 +1         ljmp    ERR_1SPOM_C
+0490 00              845 +1         nop
+0491 200AEC          847            jb      MB2, DOWN4_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+0494 D22E            848            setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+0496 120589          849            lcall   WRITEPORTS      ;
+0499 E528            850            mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+049B 5408            851            anl     A, #00001000b ;-;
+049D 600A            852            jz      DOWN4_MB1     ;-;       Ak nie, chod do stavu DOWN4_MB1
+049F D223            853            setb    SLOW            ;       Ak ano, spomalme
+04A1 C222            854            clr     FAST            ; 
+04A3 120589          855            lcall   WRITEPORTS      ;
+04A6 0204A9          856            jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
+04A9                 857    DOWN4_MB1:    
+04A9 120544          858            lcall   READPORTS       ; nacitanie dat
+                     859 +1         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+04AC 200C02          860 +1         jb      SKRD, $+5
+04AF 020500          861 +1         ljmp    ERR_SKRD
+04B2 00              862 +1         nop
+                     864 +1         ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spom
+VYTAH/ORI                                                                                                    PAGE 16
 
-                     817      
-046D                 818    ERR_1SPOM_C: 
-046D C220            819            clr     UP              ; zastav motor
-046F C221            820            clr     DOWN            ; 
-0471 12051A          821            lcall   WRITEPORTS      ; 
-                     822 +1         _BP_
-0474 C2B3            823 +1         clr     P3.3
-0476 D2AA            824 +1         setb    EX1
-0478 00              825 +1         nop
-0479 00              826 +1         nop
-047A 00              828            nop
-047B 00              829            nop 
-                     830            
-047C                 831    ERR_2SPOM_C: 
-047C C220            832            clr     UP              ; zastav motor
-047E C221            833            clr     DOWN            ; 
-0480 12051A          834            lcall   WRITEPORTS      ; 
-                     835 +1         _BP_
-0483 C2B3            836 +1         clr     P3.3
-0485 D2AA            837 +1         setb    EX1
-0487 00              838 +1         nop
-0488 00              839 +1         nop
-0489 00              841            nop
-048A 00              842            nop 
-                     843            
-048B                 844    ERR_ZAST_C: 
-048B C220            845            clr     UP              ; zastav motor
-048D C221            846            clr     DOWN            ; 
-048F 12051A          847            lcall   WRITEPORTS      ; 
-                     848 +1         _BP_
-0492 C2B3            849 +1         clr     P3.3
-0494 D2AA            850 +1         setb    EX1
-0496 00              851 +1         nop
-0497 00              852 +1         nop
-0498 00              854            nop
-0499 00              855            nop 
-                     856            
-049A                 857    ERR_SKRD: 
-049A C220            858            clr     UP              ; zastav motor
-049C C221            859            clr     DOWN            ; 
-049E 12051A          860            lcall   WRITEPORTS      ; 
-                     861 +1         _BP_
-04A1 C2B3            862 +1         clr     P3.3
-04A3 D2AA            863 +1         setb    EX1
-04A5 00              864 +1         nop
-04A6 00              865 +1         nop
-04A7 00              867            nop
-04A8 00              868            nop    
-                     869            
-04A9                 870    ERR_SKRH: 
-04A9 C220            871            clr     UP              ; zastav motor
-04AB C221            872            clr     DOWN            ; 
-04AD 12051A          873            lcall   WRITEPORTS      ; 
-                     874 +1         _BP_
-04B0 C2B3            875 +1         clr     P3.3
-04B2 D2AA            876 +1         setb    EX1
-04B4 00              877 +1         nop
-04B5 00              878 +1         nop
-VYTAH/ORID                                                                                                  PAGE 16
+                                                                               alovaciu) <<<
+04B3 200A02          865 +1         jb      MB2, $+5
+04B6 0204F1          866 +1         ljmp    ERR_ZAST_C
+04B9 00              867 +1         nop
+04BA 2009EC          869            jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
+04BD E528            870            mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+04BF 5408            871            anl     A, #00001000b ;-;
+04C1 7003            872            jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
+04C3 02039B          873            ljmp    DOWN3         ;-; |
+04C6 C221            874    D4_MB1C:clr     DOWN            ; zastav motor
+04C8 D23B            875            setb    DOWNOld         ;       (a zalohuj)
+04CA C23A            876            clr     UPOld           ;       (a zalohuj)
+04CC C222            877            clr     FAST            ; 
+04CE 120589          878            lcall   WRITEPORTS      ; 
+04D1 41C8            879            jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
+                     880                    
+                     881      
+04D3                 882    ERR_1SPOM_C: 
+04D3 C220            883            clr     UP              ; zastav motor
+04D5 C221            884            clr     DOWN            ; 
+04D7 120589          885            lcall   WRITEPORTS      ; 
+                     886 +1         _BP_
+04DA C2B3            887 +1         clr     P3.3
+04DC D2AA            888 +1         setb    EX1
+04DE 00              889 +1         nop
+04DF 00              890 +1         nop
+04E0 00              892            nop
+04E1 00              893            nop 
+                     894            
+04E2                 895    ERR_2SPOM_C: 
+04E2 C220            896            clr     UP              ; zastav motor
+04E4 C221            897            clr     DOWN            ; 
+04E6 120589          898            lcall   WRITEPORTS      ; 
+                     899 +1         _BP_
+04E9 C2B3            900 +1         clr     P3.3
+04EB D2AA            901 +1         setb    EX1
+04ED 00              902 +1         nop
+04EE 00              903 +1         nop
+04EF 00              905            nop
+04F0 00              906            nop 
+                     907            
+04F1                 908    ERR_ZAST_C: 
+04F1 C220            909            clr     UP              ; zastav motor
+04F3 C221            910            clr     DOWN            ; 
+04F5 120589          911            lcall   WRITEPORTS      ; 
+                     912 +1         _BP_
+04F8 C2B3            913 +1         clr     P3.3
+04FA D2AA            914 +1         setb    EX1
+04FC 00              915 +1         nop
+04FD 00              916 +1         nop
+04FE 00              918            nop
+04FF 00              919            nop 
+                     920            
+0500                 921    ERR_SKRD: 
+0500 C220            922            clr     UP              ; zastav motor
+0502 C221            923            clr     DOWN            ; 
+0504 120589          924            lcall   WRITEPORTS      ; 
+                     925 +1         _BP_
+VYTAH/ORIVD                                                                                                  PAGE 17
 
-04B6 00              880            nop
-04B7 00              881            nop             
-                     882                    
-                     883                    
-04B8                 884    ENDPROG:
-04B8 D218            885            setb    KS
-04BA 12051A          886            call    WRITEPORTS                ; zapis novu informaciu
-                     887 +1         _BP_
-04BD C2B3            888 +1         clr     P3.3
-04BF D2AA            889 +1         setb    EX1
-04C1 00              890 +1         nop
-04C2 00              891 +1         nop
-04C3 22              893            ret
-                     894    
-                     895    
-                     896    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     897    ; WAITFORTIMER
-                     898    ; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
-                     899    ; bude timer)
-                     900    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-04C4                 901    WAITFORTIMER:
-04C4 D22C            902            setb    PO3U                        ; rozsvieti indikator cakania (poschodie 4)
-04C6 12051A          903            lcall   WRITEPORTS                  ;
-04C9 1204D5          904    WAIT:   lcall   READPORTS                   ; 
-04CC 3013F5          905            jnb     PI3D, WAITFORTIMER          ; ak nebolo stlacene tlacidlo PO1, cakaj 
-04CF C22C            906            clr     PO3U                         ; zhasne indikator cakania (poschodie 4)
-04D1 12051A          907            lcall   WRITEPORTS
-04D4 22              908            ret
-                     909    
-                     910    
-                     911    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     912    ; READPORTS
-                     913    ; precita nove hodnoty na portoch
-                     914    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-04D5                 915    READPORTS:
-04D5 75A080          916            mov     p2, #i8255INA       ; citaj data z portu A
-04D8 75803F          917            mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
-04DB C2B7            918            clr     RDNOT
-04DD 00              919            nop
-04DE 00              920            nop
-04DF 00              921            nop
-04E0 00              922            nop
-04E1 858028          923            mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
-04E4 D2B7            924            setb    RDNOT
-                     925            
-04E6 75A081          926            mov     p2, #i8255INB       ; citaj data z portu B
-04E9 7580FE          927            mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
-                                                                               
-04EC C2B7            928            clr     RDNOT
-04EE 00              929            nop
-04EF 00              930            nop
-04F0 00              931            nop
-04F1 00              932            nop
-04F2 858021          933            mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
-04F5 D2B7            934            setb    RDNOT
-                     935    
-04F7 75A082          936            mov     p2, #i8255INC       ; citaj data z portu C
-04FA 75803F          937            mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
-VYTAH/ORILD                                                                                                  PAGE 17
-
-04FD C2B7            938            clr     RDNOT
-04FF 00              939            nop
-0500 00              940            nop
-0501 00              941            nop
-0502 00              942            nop
-0503 858022          943            mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
-0506 D2B7            944            setb    RDNOT
-0508 00              945            nop
-0509 00              946            nop
-050A 00              947            nop
-050B 00              948            nop
-050C 00              949            nop
-050D 00              950            nop
-050E 00              951            nop
-050F 00              952            nop
-0510 E528            953            mov     A, INPORTA
-0512 541E            954            anl     A, #00011110b
-0514 4223            955            orl     OUTPORTA, A
-0516 12051A          956            call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
-                     957            
-0519 22              958            ret
+0507 C2B3            926 +1         clr     P3.3
+0509 D2AA            927 +1         setb    EX1
+050B 00              928 +1         nop
+050C 00              929 +1         nop
+050D 00              931            nop
+050E 00              932            nop    
+                     933            
+050F                 934    ERR_SKRH: 
+050F C220            935            clr     UP              ; zastav motor
+0511 C221            936            clr     DOWN            ; 
+0513 120589          937            lcall   WRITEPORTS      ; 
+                     938 +1         _BP_
+0516 C2B3            939 +1         clr     P3.3
+0518 D2AA            940 +1         setb    EX1
+051A 00              941 +1         nop
+051B 00              942 +1         nop
+051C 00              944            nop
+051D 00              945            nop             
+                     946                    
+                     947                    
+051E                 948    ENDPROG:
+051E D218            949            setb    KS
+0520 120589          950            call    WRITEPORTS                ; zapis novu informaciu
+                     951 +1         _BP_
+0523 C2B3            952 +1         clr     P3.3
+0525 D2AA            953 +1         setb    EX1
+0527 00              954 +1         nop
+0528 00              955 +1         nop
+0529 22              957            ret
+                     958            
                      959            
-                     960    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     961    ; WRITEPORTS
-                     962    ; spravi zalohu vystupnych registrov a posle data von
-                     963    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-051A                 964    WRITEPORTS:
-051A 852380          965            mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
-051D 75A0C0          966            mov     p2, #i8255OUTA
-0520 C2B6            967            clr     WRNOT
-0522 00              968            nop
-0523 00              969            nop
-0524 00              970            nop
-0525 00              971            nop
-0526 D2B6            972            setb    WRNOT
-                     973            
-0528 852480          974            mov     p0, OUTPORTB        ; potom port B
-052B 75A0C1          975            mov     p2, #i8255OUTB
-052E C2B6            976            clr     WRNOT
-0530 00              977            nop
-0531 00              978            nop
-0532 00              979            nop
-0533 00              980            nop
-0534 D2B6            981            setb    WRNOT
-                     982    
-0536 852580          983            mov     p0, OUTPORTC        ; a nakoniec port C
-0539 75A0C2          984            mov     p2, #i8255OUTC
-053C C2B6            985            clr     WRNOT
-053E 00              986            nop
-053F 00              987            nop
-0540 00              988            nop
-0541 00              989            nop
-0542 D2B6            990            setb    WRNOT
-0544 00              991            nop
-0545 00              992            nop
-0546 00              993            nop
-0547 00              994            nop
-0548 00              995            nop
-VYTAH/ORID                                                                                                  PAGE 18
+                     960    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     961    ; DELAY
+                     962    ; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
+                     963    ; bude timer)
+                     964    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+052A                 965    DELAY:
+052A 7900            966            mov     R1, #0 
+052C 7AFF            967            mov     R2, #0ffh
+052E D9FE            968            djnz    R1, $
+0530 DAFC            969            djnz    R2, $-2
+0532 22              970            ret
+                     971    
+                     972    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     973    ; WAITFORTIMER
+                     974    ; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
+                     975    ; bude timer)
+                     976    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0533                 977    WAITFORTIMER:
+0533 D22C            978            setb    PO3U                        ; rozsvieti indikator cakania (poschodie 4)
+0535 120589          979            lcall   WRITEPORTS                  ;
+0538 120544          980    WAIT:   lcall   READPORTS                   ; 
+053B 3013F5          981            jnb     PI3D, WAITFORTIMER          ; ak nebolo stlacene tlacidlo PO1, cakaj 
+053E C22C            982            clr     PO3U                         ; zhasne indikator cakania (poschodie 4)
+0540 120589          983            lcall   WRITEPORTS
+0543 22              984            ret
+                     985    
+                     986    
+VYTAH/ORI                                                                                                     PAGE 18
 
-0549 00              996            nop
-054A 00              997            nop
-054B 00              998            nop
-054C 22              999            ret
-                    1000    
-                    1001    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                    1002    
-054D 0D0A5269       1003    STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
-0551 61646961   
-0555 63692073   
-0559 79737465   
-055D 6D206A65   
-0561 20696E69   
-0565 6369616C   
-0569 697A6F76   
-056D 616E792E   
-0571 0D0A00     
-0574 52696164       1004    STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 
+                     987    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     988    ; READPORTS
+                     989    ; precita nove hodnoty na portoch
+                     990    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0544                 991    READPORTS:
+0544 75A080          992            mov     p2, #i8255INA       ; citaj data z portu A
+0547 75803F          993            mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
+054A C2B7            994            clr     RDNOT
+054C 00              995            nop
+054D 00              996            nop
+054E 00              997            nop
+054F 00              998            nop
+0550 858028          999            mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
+0553 D2B7           1000            setb    RDNOT
+                    1001            
+0555 75A081         1002            mov     p2, #i8255INB       ; citaj data z portu B
+0558 7580FE         1003            mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
+                                                                               
+055B C2B7           1004            clr     RDNOT
+055D 00             1005            nop
+055E 00             1006            nop
+055F 00             1007            nop
+0560 00             1008            nop
+0561 858021         1009            mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
+0564 D2B7           1010            setb    RDNOT
+                    1011    
+0566 75A082         1012            mov     p2, #i8255INC       ; citaj data z portu C
+0569 75803F         1013            mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
+056C C2B7           1014            clr     RDNOT
+056E 00             1015            nop
+056F 00             1016            nop
+0570 00             1017            nop
+0571 00             1018            nop
+0572 858022         1019            mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
+0575 D2B7           1020            setb    RDNOT
+0577 00             1021            nop
+0578 00             1022            nop
+0579 00             1023            nop
+057A 00             1024            nop
+057B 00             1025            nop
+057C 00             1026            nop
+057D 00             1027            nop
+057E 00             1028            nop
+057F E528           1029            mov     A, INPORTA
+0581 541E           1030            anl     A, #00011110b
+0583 4223           1031            orl     OUTPORTA, A
+0585 120589         1032            call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+                    1033            
+0588 22             1034            ret
+                    1035            
+                    1036    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                    1037    ; WRITEPORTS
+                    1038    ; spravi zalohu vystupnych registrov a posle data von
+                    1039    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0589                1040    WRITEPORTS:
+0589 852380         1041            mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
+058C 75A0C0         1042            mov     p2, #i8255OUTA
+058F C2B6           1043            clr     WRNOT
+VYTAH/ORI_D                                                                                                  PAGE 19
+
+0591 00             1044            nop
+0592 00             1045            nop
+0593 00             1046            nop
+0594 00             1047            nop
+0595 D2B6           1048            setb    WRNOT
+                    1049            
+0597 852480         1050            mov     p0, OUTPORTB        ; potom port B
+059A 75A0C1         1051            mov     p2, #i8255OUTB
+059D C2B6           1052            clr     WRNOT
+059F 00             1053            nop
+05A0 00             1054            nop
+05A1 00             1055            nop
+05A2 00             1056            nop
+05A3 D2B6           1057            setb    WRNOT
+                    1058    
+05A5 852580         1059            mov     p0, OUTPORTC        ; a nakoniec port C
+05A8 75A0C2         1060            mov     p2, #i8255OUTC
+05AB C2B6           1061            clr     WRNOT
+05AD 00             1062            nop
+05AE 00             1063            nop
+05AF 00             1064            nop
+05B0 00             1065            nop
+05B1 D2B6           1066            setb    WRNOT
+05B3 00             1067            nop
+05B4 00             1068            nop
+05B5 00             1069            nop
+05B6 00             1070            nop
+05B7 00             1071            nop
+05B8 00             1072            nop
+05B9 00             1073            nop
+05BA 00             1074            nop
+05BB 22             1075            ret
+                    1076    
+                    1077    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                    1078    
+05BC 0D0A5269       1079    STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
+05C0 61646961   
+05C4 63692073   
+05C8 79737465   
+05CC 6D206A65   
+05D0 20696E69   
+05D4 6369616C   
+05D8 697A6F76   
+05DC 616E792E   
+05E0 0D0A00     
+05E3 52696164       1080    STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 
                                                                                00h
-0578 69616369   
-057C 20737973   
-0580 74656D20   
-0584 6A652072   
-0588 65696E69   
-058C 6369616C   
-0590 697A6F76   
-0594 616E7920   
-0598 706F2073   
-059C 746C6163   
-05A0 656E6920   
-05A4 746C6163   
-05A8 69646C61   
-05AC 2053544F   
-05B0 502E0D0A   
-05B4 00         
-05B5 4B616C69       1005    STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
-05B9 62726163   
-05BD 69612076   
-05C1 79746168   
-05C5 75206A65   
-05C9 20756B6F   
-05CD 6E63656E   
-05D1 612E0D0A   
-05D5 00         
-                    1006    
-----                1007            DSEG
-0040                1008            org     40h
-0040                1009    STACK:  DS      10h
-                    1010    
-                    1011    end
+05E7 69616369   
+05EB 20737973   
+05EF 74656D20   
+05F3 6A652072   
+05F7 65696E69   
+05FB 6369616C   
+05FF 697A6F76   
+0603 616E7920   
+0607 706F2073   
+060B 746C6163   
+060F 656E6920   
+VYTAH/ORI[D                                                                                                  PAGE 20
+
+0613 746C6163   
+0617 69646C61   
+061B 2053544F   
+061F 502E0D0A   
+0623 00         
+0624 4B616C69       1081    STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
+0628 62726163   
+062C 69612076   
+0630 79746168   
+0634 75206A65   
+0638 20756B6F   
+063C 6E63656E   
+0640 612E0D0A   
+0644 00         
+                    1082    
+----                1083            DSEG
+0040                1084            org     40h
+0040                1085    STACK:  DS      10h
+                    1086    
+                    1087    end
 
 VERSION 1.2h ASSEMBLY COMPLETE, 0 ERRORS FOUND
-VYTAH/ORI                                                                                                     PAGE 19
+VYTAH/ORI                                                                                                     PAGE 21
 
 B. . . . . . . . . . . . . . . .  D ADDR  00F0H  PREDEFINED  
 BMDOORCLSD . . . . . . . . . . .    NUMB  0020H  
@@ -1121,45 +1212,47 @@ CALIBEND . . . . . . . . . . . .  C ADDR  00ADH
 CALIBLOOP. . . . . . . . . . . .  C ADDR  00A5H  
 CANGO. . . . . . . . . . . . . .  B ADDR  0038H  NOT USED  
 CTRLREG. . . . . . . . . . . . .  D ADDR  0027H  
-D3_MB1C. . . . . . . . . . . . .  C ADDR  03C1H  
-D4_MB1C. . . . . . . . . . . . .  C ADDR  0460H  
+D2_MB1C. . . . . . . . . . . . .  C ADDR  02BBH  
+D3_MB1C. . . . . . . . . . . . .  C ADDR  0413H  
+D4_MB1C. . . . . . . . . . . . .  C ADDR  04C6H  
+DELAY. . . . . . . . . . . . . .  C ADDR  052AH  NOT USED  
 DOORCLSD . . . . . . . . . . . .  B ADDR  0045H  NOT USED  
 DOORCLSDOLD. . . . . . . . . . .  B ADDR  0039H  NOT USED  
 DOWN . . . . . . . . . . . . . .  B ADDR  0021H  
-DOWN2. . . . . . . . . . . . . .  C ADDR  022DH  
-DOWN2_MB1. . . . . . . . . . . .  C ADDR  027BH  
-DOWN2_MB2. . . . . . . . . . . .  C ADDR  0259H  
-DOWN3. . . . . . . . . . . . . .  C ADDR  035DH  
-DOWN3_MB1. . . . . . . . . . . .  C ADDR  03ABH  
-DOWN3_MB2. . . . . . . . . . . .  C ADDR  0389H  
-DOWN4. . . . . . . . . . . . . .  C ADDR  03FCH  
-VYTAH/ORI                                                                                                     PAGE 20
+DOWN2. . . . . . . . . . . . . .  C ADDR  0255H  
+DOWN2_MB1. . . . . . . . . . . .  C ADDR  02B0H  
+DOWN2_MB2. . . . . . . . . . . .  C ADDR  0287H  
+DOWN3. . . . . . . . . . . . . .  C ADDR  039BH  
+DOWN3_MB1. . . . . . . . . . . .  C ADDR  03F6H  
+VYTAH/ORI                                                                                                     PAGE 22
 
-DOWN4_MB1. . . . . . . . . . . .  C ADDR  044AH  
-DOWN4_MB2. . . . . . . . . . . .  C ADDR  0428H  
+DOWN3_MB2. . . . . . . . . . . .  C ADDR  03CDH  
+DOWN4. . . . . . . . . . . . . .  C ADDR  044EH  
+DOWN4_MB1. . . . . . . . . . . .  C ADDR  04A9H  
+DOWN4_MB2. . . . . . . . . . . .  C ADDR  0480H  
 DOWNOLD. . . . . . . . . . . . .  B ADDR  003BH  
 DP . . . . . . . . . . . . . . .  B ADDR  000DH  NOT USED  
 DPK. . . . . . . . . . . . . . .  B ADDR  000FH  NOT USED  
 DPZK . . . . . . . . . . . . . .  B ADDR  000EH  NOT USED  
-ENDPROG. . . . . . . . . . . . .  C ADDR  04B8H  NOT USED  
-ERR_1SPOM_C. . . . . . . . . . .  C ADDR  046DH  NOT USED  
-ERR_2SPOM_C. . . . . . . . . . .  C ADDR  047CH  NOT USED  
-ERR_SKRD . . . . . . . . . . . .  C ADDR  049AH  
-ERR_SKRH . . . . . . . . . . . .  C ADDR  04A9H  
-ERR_ZAST_C . . . . . . . . . . .  C ADDR  048BH  NOT USED  
+ENDPROG. . . . . . . . . . . . .  C ADDR  051EH  NOT USED  
+ERR_1SPOM_C. . . . . . . . . . .  C ADDR  04D3H  
+ERR_2SPOM_C. . . . . . . . . . .  C ADDR  04E2H  NOT USED  
+ERR_SKRD . . . . . . . . . . . .  C ADDR  0500H  
+ERR_SKRH . . . . . . . . . . . .  C ADDR  050FH  
+ERR_ZAST_C . . . . . . . . . . .  C ADDR  04F1H  
 EX1. . . . . . . . . . . . . . .  B ADDR  00AAH  PREDEFINED  
 F1S. . . . . . . . . . . . . . .  C ADDR  00D3H  
-F2 . . . . . . . . . . . . . . .  C ADDR  019DH  
-F2DOWN . . . . . . . . . . . . .  C ADDR  01AFH  
-F2OK . . . . . . . . . . . . . .  C ADDR  017EH  
-F2S. . . . . . . . . . . . . . .  C ADDR  0170H  
-F2UP . . . . . . . . . . . . . .  C ADDR  01A3H  
-F3 . . . . . . . . . . . . . . .  C ADDR  02D6H  
-F3DOWN . . . . . . . . . . . . .  C ADDR  02E8H  
-F3OK . . . . . . . . . . . . . .  C ADDR  02B7H  
-F3S. . . . . . . . . . . . . . .  C ADDR  02A9H  
-F3UP . . . . . . . . . . . . . .  C ADDR  02DCH  
-F4S. . . . . . . . . . . . . . .  C ADDR  03E2H  
+F2 . . . . . . . . . . . . . . .  C ADDR  01B1H  
+F2DOWN . . . . . . . . . . . . .  C ADDR  01C3H  
+F2OK . . . . . . . . . . . . . .  C ADDR  0192H  
+F2S. . . . . . . . . . . . . . .  C ADDR  0184H  
+F2UP . . . . . . . . . . . . . .  C ADDR  01B7H  
+F3 . . . . . . . . . . . . . . .  C ADDR  0309H  
+F3DOWN . . . . . . . . . . . . .  C ADDR  031BH  
+F3OK . . . . . . . . . . . . . .  C ADDR  02EAH  
+F3S. . . . . . . . . . . . . . .  C ADDR  02DCH  
+F3UP . . . . . . . . . . . . . .  C ADDR  030FH  
+F4S. . . . . . . . . . . . . . .  C ADDR  0434H  
 FAST . . . . . . . . . . . . . .  B ADDR  0022H  
 FASTOLD. . . . . . . . . . . . .  B ADDR  003CH  NOT USED  
 FLED1. . . . . . . . . . . . . .  B ADDR  0024H  
@@ -1167,9 +1260,9 @@ FLED2. . . . . . . . . . . . . .  B ADDR  0025H
 FLED3. . . . . . . . . . . . . .  B ADDR  0026H  
 FLED4. . . . . . . . . . . . . .  B ADDR  0027H  
 FLOOR1 . . . . . . . . . . . . .  C ADDR  00BFH  
-FLOOR2 . . . . . . . . . . . . .  C ADDR  015CH  
-FLOOR3 . . . . . . . . . . . . .  C ADDR  0295H  
-FLOOR4 . . . . . . . . . . . . .  C ADDR  03CEH  
+FLOOR2 . . . . . . . . . . . . .  C ADDR  0170H  
+FLOOR3 . . . . . . . . . . . . .  C ADDR  02C8H  
+FLOOR4 . . . . . . . . . . . . .  C ADDR  0420H  
 FLOORREQ . . . . . . . . . . . .  D ADDR  0036H  
 HIGHEST. . . . . . . . . . . . .  D ADDR  0032H  NOT USED  
 I8255INA . . . . . . . . . . . .    NUMB  0080H  
@@ -1191,10 +1284,10 @@ LOWEST . . . . . . . . . . . . .  D ADDR  0031H  NOT USED
 MAIN . . . . . . . . . . . . . .  C ADDR  00BFH  NOT USED  
 MB1. . . . . . . . . . . . . . .  B ADDR  0009H  
 MB1OLD . . . . . . . . . . . . .  B ADDR  0031H  NOT USED  
+VYTAH/ORI                                                                                                     PAGE 23
+
 MB2. . . . . . . . . . . . . . .  B ADDR  000AH  
 MB2OLD . . . . . . . . . . . . .  B ADDR  0032H  NOT USED  
-VYTAH/ORI                                                                                                     PAGE 21
-
 OUTPORTA . . . . . . . . . . . .  D ADDR  0023H  
 OUTPORTB . . . . . . . . . . . .  D ADDR  0024H  
 OUTPORTBOLD. . . . . . . . . . .  D ADDR  0034H  NOT USED  
@@ -1224,7 +1317,7 @@ PO3U . . . . . . . . . . . . . .  B ADDR  002CH
 PO4. . . . . . . . . . . . . . .  B ADDR  002DH  NOT USED  
 POSITION . . . . . . . . . . . .  D ADDR  0030H  NOT USED  
 RDNOT. . . . . . . . . . . . . .  B ADDR  00B7H  
-READPORTS. . . . . . . . . . . .  C ADDR  04D5H  
+READPORTS. . . . . . . . . . . .  C ADDR  0544H  
 RESET. . . . . . . . . . . . . .  C ADDR  0033H  NOT USED  
 SKRD . . . . . . . . . . . . . .  B ADDR  000CH  
 SKRDOLD. . . . . . . . . . . . .  B ADDR  0034H  NOT USED  
@@ -1237,28 +1330,29 @@ STACK. . . . . . . . . . . . . .  D ADDR  0040H
 START. . . . . . . . . . . . . .  C ADDR  0033H  
 STOPNOT. . . . . . . . . . . . .  B ADDR  0040H  NOT USED  
 STOPTIMER. . . . . . . . . . . .  D ADDR  0033H  
-STR_CALIB. . . . . . . . . . . .  C ADDR  05B5H  NOT USED  
-STR_INIT . . . . . . . . . . . .  C ADDR  054DH  NOT USED  
-STR_STOP . . . . . . . . . . . .  C ADDR  0574H  NOT USED  
+STR_CALIB. . . . . . . . . . . .  C ADDR  0624H  NOT USED  
+STR_INIT . . . . . . . . . . . .  C ADDR  05BCH  NOT USED  
+STR_STOP . . . . . . . . . . . .  C ADDR  05E3H  NOT USED  
 TIMERCONST . . . . . . . . . . .    NUMB  00FAH  NOT USED  
-U2_MB1C. . . . . . . . . . . . .  C ADDR  021FH  
+U2_MB1C. . . . . . . . . . . . .  C ADDR  0247H  
+U3_MB1C. . . . . . . . . . . . .  C ADDR  038DH  
 UP . . . . . . . . . . . . . . .  B ADDR  0020H  
 UP1. . . . . . . . . . . . . . .  C ADDR  00EDH  
-UP1A . . . . . . . . . . . . . .  C ADDR  00FEH  
-UP1_MB1. . . . . . . . . . . . .  C ADDR  013BH  
-UP1_MB2. . . . . . . . . . . . .  C ADDR  0119H  
-UP2. . . . . . . . . . . . . . .  C ADDR  01BBH  
-UP2A . . . . . . . . . . . . . .  C ADDR  01CCH  
-UP2_MB1. . . . . . . . . . . . .  C ADDR  0209H  
-UP2_MB2. . . . . . . . . . . . .  C ADDR  01E7H  
-UP3. . . . . . . . . . . . . . .  C ADDR  02F4H  
-UP3A . . . . . . . . . . . . . .  C ADDR  0305H  
-VYTAH/ORI                                                                                                     PAGE 22
+UP1A . . . . . . . . . . . . . .  C ADDR  0104H  
+UP1_MB1. . . . . . . . . . . . .  C ADDR  0148H  
+UP1_MB2. . . . . . . . . . . . .  C ADDR  011FH  
+UP2. . . . . . . . . . . . . . .  C ADDR  01CFH  
+UP2A . . . . . . . . . . . . . .  C ADDR  01E6H  
+UP2_MB1. . . . . . . . . . . . .  C ADDR  022AH  
+VYTAH/ORI                                                                                                     PAGE 24
 
-UP3_MB1. . . . . . . . . . . . .  C ADDR  0342H  
-UP3_MB2. . . . . . . . . . . . .  C ADDR  0320H  
+UP2_MB2. . . . . . . . . . . . .  C ADDR  0201H  
+UP3. . . . . . . . . . . . . . .  C ADDR  0327H  
+UP3A . . . . . . . . . . . . . .  C ADDR  033EH  
+UP3_MB1. . . . . . . . . . . . .  C ADDR  0382H  
+UP3_MB2. . . . . . . . . . . . .  C ADDR  0359H  
 UPOLD. . . . . . . . . . . . . .  B ADDR  003AH  
-WAIT . . . . . . . . . . . . . .  C ADDR  04C9H  NOT USED  
-WAITFORTIMER . . . . . . . . . .  C ADDR  04C4H  
-WRITEPORTS . . . . . . . . . . .  C ADDR  051AH  
+WAIT . . . . . . . . . . . . . .  C ADDR  0538H  NOT USED  
+WAITFORTIMER . . . . . . . . . .  C ADDR  0533H  
+WRITEPORTS . . . . . . . . . . .  C ADDR  0589H  
 WRNOT. . . . . . . . . . . . . .  B ADDR  00B6H  
