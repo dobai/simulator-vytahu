@@ -2,6 +2,7 @@ $MOD51
 $DEBUG
 
 $include (lift.inc)
+FLOORREQ        data    36h
 
 ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
 TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunikacie
@@ -12,8 +13,8 @@ TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby serio
         ljmp    START           ; skok na zaciatok kodu programu
               
         org     0033h           ; od tejto adresy sa zacina kod programu
-
-START:  
+START:
+RESET:  
         ; riadiace signaly do pasivnej urovne
         setb    WRNOT
         setb    RDNOT
@@ -59,7 +60,9 @@ START:
         mov     OUTPORTB, #0
         mov     OUTPORTC, #0
         call    WRITEPORTS          ; zapis novu informaciu
-
+        
+        call    WAITFORTIMER
+        
         mov     INPORTA, #0
         mov     INPORTB, #0         
         mov     INPORTC, #0
@@ -75,11 +78,13 @@ CALIB:
 CALIBLOOP:
         lcall   READPORTS                   ; 
         jnb     SKRD, CALIBEND              ; ak sme dole, konci
-        jnb     MB2, CALIBEND               ; ak sme na poschodi, konci
+        ;jnb     MB2, CALIBEND               ; ak sme na poschodi, konci
         jmp     CALIBLOOP
 CALIBEND:
+        mov     FLOORREQ, #0                                
         clr     FAST                        ; stojime
         clr     DOWN                        ;
+        setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
 MAIN:
 
@@ -96,33 +101,92 @@ MAIN:
 ; OUTPORTB > | FLED4 | FLED3 | FLED2 | FLED1 | SLOW  | FAST  | DOWN  | UP    |
 ; ----------------------------------------------------------------------------
 ; OUTPORTC > | LEDU  | LEDD  | PO4   | PO3D  | PO3U  | PO2D  | PO2U  | PO1   |
-; ----------------------------------------------------------------------------
+; ****************************************************************************
+; POSITION
+; ****************************************************************************
 
-GOUP:   
-        lcall   READPORTS 
-        jnb     PI4, GOUP 
 
-        setb    FAST                        ; ideme hore
-        setb    UP                        ;
+FLOOR1:
+        lcall   WAITFORTIMER
+F1S:    lcall   READPORTS
+        mov     A, INPORTA
+        anl     A, #00011100b
+        clr     PKO1
+        lcall   WRITEPORTS
+        jz      F1S  
+        setb    UP                        ; inak pod dole
+        setb    FAST                        ; a rychlo
         lcall   WRITEPORTS                  ; zapis informaciu
-UPLOOP: 
-        lcall   READPORTS                   ; 
-        jb      SKRH, UPLOOP               ; ak sme dole, konci
-ZASTAVI:
-        clr     FAST                        ; ideme hore
-        clr     UP                        ;
+        jmp     UP1
+UP1:
+        lcall   READPORTS
+        jb      MB2, UP1
+        lcall   READPORTS
+        jnb     MB2, $-3                
+        setb    LEDD
+        lcall   WRITEPORTS
+        jmp     UP1_MB2
+UP1_MB2:
+        lcall   READPORTS
+        jb      MB2, UP1_MB2              
+        setb    LEDU
+        lcall   WRITEPORTS
+        jmp     UP1_MB1        
+UP1_MB1:
+        lcall   READPORTS
+        jb      MB1, UP1_MB1 
+        clr     LEDU
+        clr     LEDD
+        lcall   WRITEPORTS
+        jmp     FLOOR2
+
+FLOOR2:
+        clr     UP                        ; inak pod dole
+        clr     FAST                        ; a rychlo
+        clr     FLED1     
+        setb    FLED2     
+        clr     FLED3     
+        clr     FLED4     
         lcall   WRITEPORTS                  ; zapis informaciu
-        
-                
-ESTERAZ:
-        lcall   READPORTS  
-        ;jnb      STOPNOT, ENDPROG
-        jnb     PI1, ESTERAZ    
-        jmp     CALIB
-        
+        jmp     ENDPROG
+UP2:
+
+UP2_MB1:
+
+UP2_MB2:
+
+DOWN2_MB1:
+
+DOWN2_MB2:
+     
+     
+HIGHER:
+        lcall   READPORTS
+        jb      MB1, HIGHER
+        clr     UP                        ; inak pod dole
+        clr     FAST                      ; a rychlo
+        lcall   WRITEPORTS                ; zapis informaciu              
 ENDPROG:
-
+        ;----------------------------breakpoint
+BP:     clr     P3.3
+        setb    EX1
+        nop
+        ;----------------------------
+        setb    KS
+        call    WRITEPORTS                ; zapis novu informaciu
         ret
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; WAITFORTIMER
+; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
+; bude timer)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+WAITFORTIMER:
+        lcall   READPORTS                   ; 
+        jnb     PI2D, WAITFORTIMER           ; ak nebolo stlacene tlacidlo PO1, cakaj 
+        ret
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; READPORTS
@@ -158,6 +222,13 @@ READPORTS:
         nop
         mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
         setb    RDNOT
+        
+        
+        mov     A, INPORTA
+        anl     A, #00011110b
+        orl     OUTPORTA, A
+        call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+        
         ret
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -191,6 +262,7 @@ WRITEPORTS:
         nop
         nop
         setb    WRNOT
+        
         ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -149,258 +149,332 @@
   0010          =1   143    bmPI3U            equ    00010000b
   0020          =1   144    bmPI4             equ    00100000b
                 =1   145    
-                     146    
-                     147    ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
-  00FA               148    TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunika
+  0036               146    FLOORREQ        data    36h
+                     147    
+                     148    ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
+  00FA               149    TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunika
                                                                                cie
-                     149                                    ; hodnota 250 znamena prenosovu rychlost 4800 baud pri oscil
+                     150                                    ; hodnota 250 znamena prenosovu rychlost 4800 baud pri oscil
                                                                                atore 11.0592MHz
-                     150                                    ; nastavenie terminalu je 4800 8-N-1, no flow control
-                     151    ;osetrenie vektorov preruseni
-0000                 152            org     0000h           ; adresa odkial startuje program po resete
-0000 020033          153            ljmp    START           ; skok na zaciatok kodu programu
-                     154                  
-0033                 155            org     0033h           ; od tejto adresy sa zacina kod programu
-                     156    
-0033                 157    START:  
-                     158            ; riadiace signaly do pasivnej urovne
-0033 D2B6            159            setb    WRNOT
-0035 D2B7            160            setb    RDNOT
-0037 753300          161            mov     STOPTIMER, #0
-003A 758140          162            mov     SP, #STACK
-                     163    
-                     164            ; pockame si na inicializaciu obvodov 8255  
-003D 7900            165            mov     R1, #0 
-003F 7A01            166            mov     R2, #01h             ;Povodne #0ffh <<EMULATOR>>
-0041 D9FE            167            djnz    R1, $
-0043 DAFC            168            djnz    R2, $-2
-                     169            
-                     170            ; teraz ich mozeme nastavit
-0045 75809B          171            mov     p0, #10011011b      ; nastavenie i8255IN - vsetky porty dnu
-0048 75A083          172            mov     p2, #i8255INCW
+                     151                                    ; nastavenie terminalu je 4800 8-N-1, no flow control
+                     152    ;osetrenie vektorov preruseni
+0000                 153            org     0000h           ; adresa odkial startuje program po resete
+0000 020033          154            ljmp    START           ; skok na zaciatok kodu programu
+                     155                  
+0033                 156            org     0033h           ; od tejto adresy sa zacina kod programu
+0033                 157    START:
+0033                 158    RESET:  
+                     159            ; riadiace signaly do pasivnej urovne
+0033 D2B6            160            setb    WRNOT
+0035 D2B7            161            setb    RDNOT
+0037 753300          162            mov     STOPTIMER, #0
+003A 758140          163            mov     SP, #STACK
+                     164    
+                     165            ; pockame si na inicializaciu obvodov 8255  
+003D 7900            166            mov     R1, #0 
+003F 7A01            167            mov     R2, #01h             ;Povodne #0ffh <<EMULATOR>>
+0041 D9FE            168            djnz    R1, $
+0043 DAFC            169            djnz    R2, $-2
+                     170            
+                     171            ; teraz ich mozeme nastavit
+0045 75809B          172            mov     p0, #10011011b      ; nastavenie i8255IN - vsetky porty dnu
 DEBUG                                                                                                         PAGE 4
 
-004B C2B6            173            clr     WRNOT
-004D 00              174            nop
-004E 00              175            nop
-004F 00              176            nop
-0050 00              177            nop
-0051 D2B6            178            setb    WRNOT
-0053 758080          179            mov     p0, #10000000b      ; nastavenie i8255OUT - vsetky porty von
-0056 75A0C3          180            mov     p2, #i8255OUTCW
-0059 C2B6            181            clr     WRNOT
-005B 00              182            nop
-005C 00              183            nop
-005D 00              184            nop
-005E 00              185            nop
-005F D2B6            186            setb    WRNOT
-                     187    
-                     188            ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
-0061 752800          189            mov     INPORTA, #0
-0064 75211E          190            mov     INPORTB, #01eh      ; vsetky clonky pasivne
-0067 752200          191            mov     INPORTC, #0
-006A 75231E          192            mov     OUTPORTA, #(bmPKO1 or bmPKO2 or bmPKO3 or bmPKO4)
-006D 7524F0          193            mov     OUTPORTB, #(bmFLED1 or bmFLED2 or bmFLED3 or bmFLED4)
-0070 7525FF          194            mov     OUTPORTC, #(bmPO1 or bmPO2D or bmPO2U or bmPO3D or bmPO3U or bmPO4 or bmLEDD
+0048 75A083          173            mov     p2, #i8255INCW
+004B C2B6            174            clr     WRNOT
+004D 00              175            nop
+004E 00              176            nop
+004F 00              177            nop
+0050 00              178            nop
+0051 D2B6            179            setb    WRNOT
+0053 758080          180            mov     p0, #10000000b      ; nastavenie i8255OUT - vsetky porty von
+0056 75A0C3          181            mov     p2, #i8255OUTCW
+0059 C2B6            182            clr     WRNOT
+005B 00              183            nop
+005C 00              184            nop
+005D 00              185            nop
+005E 00              186            nop
+005F D2B6            187            setb    WRNOT
+                     188    
+                     189            ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
+0061 752800          190            mov     INPORTA, #0
+0064 75211E          191            mov     INPORTB, #01eh      ; vsetky clonky pasivne
+0067 752200          192            mov     INPORTC, #0
+006A 75231E          193            mov     OUTPORTA, #(bmPKO1 or bmPKO2 or bmPKO3 or bmPKO4)
+006D 7524F0          194            mov     OUTPORTB, #(bmFLED1 or bmFLED2 or bmFLED3 or bmFLED4)
+0070 7525FF          195            mov     OUTPORTC, #(bmPO1 or bmPO2D or bmPO2U or bmPO3D or bmPO3U or bmPO4 or bmLEDD
                                                                                 or bmLEDU)
-0073 D218            195            setb    KS
-0075 120106          196            call    WRITEPORTS          ; zapis novu informaciu
-                     197    ;;;;;;;;
-                     198    
-0078 752300          199            mov     OUTPORTA, #0
-007B 752400          200            mov     OUTPORTB, #0
-007E 752500          201            mov     OUTPORTC, #0
-0081 120106          202            call    WRITEPORTS          ; zapis novu informaciu
-                     203    
-0084 752800          204            mov     INPORTA, #0
-0087 752100          205            mov     INPORTB, #0         
-008A 752200          206            mov     INPORTC, #0
-008D 1200D2          207            call    READPORTS           ; prvotne nacitanie udajov
-                     208    
-0090                 209    CALIB:
-                     210            ;kalibracia vytahu podla dolnej porovnavacej clonky
-0090 1200D2          211            lcall   READPORTS                   ; precitaj, co je na portoch
-0093 300C12          212            jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koni
+0073 D218            196            setb    KS
+0075 12016F          197            call    WRITEPORTS          ; zapis novu informaciu
+                     198    ;;;;;;;;
+                     199    
+0078 752300          200            mov     OUTPORTA, #0
+007B 752400          201            mov     OUTPORTB, #0
+007E 752500          202            mov     OUTPORTC, #0
+0081 12016F          203            call    WRITEPORTS          ; zapis novu informaciu
+                     204            
+0084 12012B          205            call    WAITFORTIMER
+                     206            
+0087 752800          207            mov     INPORTA, #0
+008A 752100          208            mov     INPORTB, #0         
+008D 752200          209            mov     INPORTC, #0
+0090 120132          210            call    READPORTS           ; prvotne nacitanie udajov
+                     211    
+0093                 212    CALIB:
+                     213            ;kalibracia vytahu podla dolnej porovnavacej clonky
+0093 120132          214            lcall   READPORTS                   ; precitaj, co je na portoch
+0096 300C0F          215            jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koni
                                                                                ec
-0096 D221            213            setb    DOWN                        ; inak pod dole
-0098 D222            214            setb    FAST                        ; a rychlo
-009A 120106          215            lcall   WRITEPORTS                  ; zapis informaciu 
-009D                 216    CALIBLOOP:
-009D 1200D2          217            lcall   READPORTS                   ; 
-00A0 300C05          218            jnb     SKRD, CALIBEND              ; ak sme dole, konci
-00A3 300A02          219            jnb     MB2, CALIBEND               ; ak sme na poschodi, konci
-00A6 80F5            220            jmp     CALIBLOOP
-00A8                 221    CALIBEND:
-00A8 C222            222            clr     FAST                        ; stojime
-00AA C221            223            clr     DOWN                        ;
-00AC 120106          224            lcall   WRITEPORTS                  ; zapis informaciu
-00AF                 225    MAIN:
-                     226    
-                     227    ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
-                     228    ; ****************************************************************************
+0099 D221            216            setb    DOWN                        ; inak pod dole
+009B D222            217            setb    FAST                        ; a rychlo
+009D 12016F          218            lcall   WRITEPORTS                  ; zapis informaciu 
+00A0                 219    CALIBLOOP:
+00A0 120132          220            lcall   READPORTS                   ; 
+00A3 300C02          221            jnb     SKRD, CALIBEND              ; ak sme dole, konci
+                     222            ;jnb     MB2, CALIBEND               ; ak sme na poschodi, konci
+00A6 80F8            223            jmp     CALIBLOOP
+00A8                 224    CALIBEND:
+00A8 753600          225            mov     FLOORREQ, #0                                
+00AB C222            226            clr     FAST                        ; stojime
+00AD C221            227            clr     DOWN                        ;
+00AF D224            228            setb    FLED1
 DEBUG                                                                                                         PAGE 5
 
-                     229    ; INPORTA >  |       |       |DOORCLS| PKI4  | PKI3  | PKI2  | PKI1  |STOPNOT|
-                     230    ; ----------------------------------------------------------------------------
-                     231    ; INPORTB >  | DPK   | DPZK  | DP    | SKRD  | SKRH  | MB2   | MB1   |       |
-                     232    ; ----------------------------------------------------------------------------
-                     233    ; INPORTC >  |       |       | PI4   | PI3D  | PI3U  | PI2D  | PI2U  | PI1   |
-                     234    ; ****************************************************************************
-                     235    ; OUTPORTA > |       |       |       | PKO4  | PKO3  | PKO2  | PKO1  | KS    |
-                     236    ; ----------------------------------------------------------------------------
-                     237    ; OUTPORTB > | FLED4 | FLED3 | FLED2 | FLED1 | SLOW  | FAST  | DOWN  | UP    |
-                     238    ; ----------------------------------------------------------------------------
-                     239    ; OUTPORTC > | LEDU  | LEDD  | PO4   | PO3D  | PO3U  | PO2D  | PO2U  | PO1   |
-                     240    ; ----------------------------------------------------------------------------
-                     241    
-00AF                 242    GOUP:   
-00AF 1200D2          243            lcall   READPORTS 
-00B2 3015FA          244            jnb     PI4, GOUP 
-                     245    
-00B5 D222            246            setb    FAST                        ; ideme hore
-00B7 D220            247            setb    UP                        ;
-00B9 120106          248            lcall   WRITEPORTS                  ; zapis informaciu
-00BC                 249    UPLOOP: 
-00BC 1200D2          250            lcall   READPORTS                   ; 
-00BF 200BFA          251            jb      SKRH, UPLOOP               ; ak sme dole, konci
-00C2                 252    ZASTAVI:
-00C2 C222            253            clr     FAST                        ; ideme hore
-00C4 C220            254            clr     UP                        ;
-00C6 120106          255            lcall   WRITEPORTS                  ; zapis informaciu
-                     256            
-                     257                    
-00C9                 258    ESTERAZ:
-00C9 1200D2          259            lcall   READPORTS  
-                     260            ;jnb      STOPNOT, ENDPROG
-00CC 3010FA          261            jnb     PI1, ESTERAZ    
-00CF 80BF            262            jmp     CALIB
-                     263            
-00D1                 264    ENDPROG:
-                     265    
-00D1 22              266            ret
-                     267    
-                     268    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     269    ; READPORTS
-                     270    ; precita nove hodnoty na portoch
-                     271    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-00D2                 272    READPORTS:
-00D2 75A080          273            mov     p2, #i8255INA       ; citaj data z portu A
-00D5 75803F          274            mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
-00D8 C2B7            275            clr     RDNOT
-00DA 00              276            nop
-00DB 00              277            nop
-00DC 00              278            nop
-00DD 00              279            nop
-00DE 858028          280            mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
-00E1 D2B7            281            setb    RDNOT
-                     282            
-00E3 75A081          283            mov     p2, #i8255INB       ; citaj data z portu B
-00E6 7580FE          284            mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
-                                                                               
-00E9 C2B7            285            clr     RDNOT
+00B1 12016F          229            lcall   WRITEPORTS                  ; zapis informaciu
+00B4                 230    MAIN:
+                     231    
+                     232    ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
+                     233    ; ****************************************************************************
+                     234    ; INPORTA >  |       |       |DOORCLS| PKI4  | PKI3  | PKI2  | PKI1  |STOPNOT|
+                     235    ; ----------------------------------------------------------------------------
+                     236    ; INPORTB >  | DPK   | DPZK  | DP    | SKRD  | SKRH  | MB2   | MB1   |       |
+                     237    ; ----------------------------------------------------------------------------
+                     238    ; INPORTC >  |       |       | PI4   | PI3D  | PI3U  | PI2D  | PI2U  | PI1   |
+                     239    ; ****************************************************************************
+                     240    ; OUTPORTA > |       |       |       | PKO4  | PKO3  | PKO2  | PKO1  | KS    |
+                     241    ; ----------------------------------------------------------------------------
+                     242    ; OUTPORTB > | FLED4 | FLED3 | FLED2 | FLED1 | SLOW  | FAST  | DOWN  | UP    |
+                     243    ; ----------------------------------------------------------------------------
+                     244    ; OUTPORTC > | LEDU  | LEDD  | PO4   | PO3D  | PO3U  | PO2D  | PO2U  | PO1   |
+                     245    ; ****************************************************************************
+                     246    ; POSITION
+                     247    ; ****************************************************************************
+                     248    
+                     249    
+00B4                 250    FLOOR1:
+00B4 12012B          251            lcall   WAITFORTIMER
+00B7 120132          252    F1S:    lcall   READPORTS
+00BA E528            253            mov     A, INPORTA
+00BC 541C            254            anl     A, #00011100b
+00BE C219            255            clr     PKO1
+00C0 12016F          256            lcall   WRITEPORTS
+00C3 60F2            257            jz      F1S  
+00C5 D220            258            setb    UP                        ; inak pod dole
+00C7 D222            259            setb    FAST                        ; a rychlo
+00C9 12016F          260            lcall   WRITEPORTS                  ; zapis informaciu
+00CC 0200CF          261            jmp     UP1
+00CF                 262    UP1:
+00CF 120132          263            lcall   READPORTS
+00D2 200AFA          264            jb      MB2, UP1
+00D5 120132          265            lcall   READPORTS
+00D8 300AFA          266            jnb     MB2, $-3                
+00DB D22E            267            setb    LEDD
+00DD 12016F          268            lcall   WRITEPORTS
+00E0 0200E3          269            jmp     UP1_MB2
+00E3                 270    UP1_MB2:
+00E3 120132          271            lcall   READPORTS
+00E6 200AFA          272            jb      MB2, UP1_MB2              
+00E9 D22F            273            setb    LEDU
+00EB 12016F          274            lcall   WRITEPORTS
+00EE 0200F1          275            jmp     UP1_MB1        
+00F1                 276    UP1_MB1:
+00F1 120132          277            lcall   READPORTS
+00F4 2009FA          278            jb      MB1, UP1_MB1 
+00F7 C22F            279            clr     LEDU
+00F9 C22E            280            clr     LEDD
+00FB 12016F          281            lcall   WRITEPORTS
+00FE 020101          282            jmp     FLOOR2
+                     283    
+0101                 284    FLOOR2:
+0101 C220            285            clr     UP                        ; inak pod dole
+0103 C222            286            clr     FAST                        ; a rychlo
 DEBUG                                                                                                         PAGE 6
 
-00EB 00              286            nop
-00EC 00              287            nop
-00ED 00              288            nop
-00EE 00              289            nop
-00EF 858021          290            mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
-00F2 D2B7            291            setb    RDNOT
-                     292    
-00F4 75A082          293            mov     p2, #i8255INC       ; citaj data z portu C
-00F7 75803F          294            mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
-00FA C2B7            295            clr     RDNOT
-00FC 00              296            nop
-00FD 00              297            nop
-00FE 00              298            nop
-00FF 00              299            nop
-0100 858022          300            mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
-0103 D2B7            301            setb    RDNOT
-0105 22              302            ret
-                     303            
-                     304    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     305    ; WRITEPORTS
-                     306    ; spravi zalohu vystupnych registrov a posle data von
-                     307    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-0106                 308    WRITEPORTS:
-0106 852380          309            mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
-0109 75A0C0          310            mov     p2, #i8255OUTA
-010C C2B6            311            clr     WRNOT
-010E 00              312            nop
-010F 00              313            nop
-0110 00              314            nop
-0111 00              315            nop
-0112 D2B6            316            setb    WRNOT
-                     317            
-0114 852480          318            mov     p0, OUTPORTB        ; potom port B
-0117 75A0C1          319            mov     p2, #i8255OUTB
-011A C2B6            320            clr     WRNOT
-011C 00              321            nop
-011D 00              322            nop
-011E 00              323            nop
-011F 00              324            nop
-0120 D2B6            325            setb    WRNOT
-                     326    
-0122 852580          327            mov     p0, OUTPORTC        ; a nakoniec port C
-0125 75A0C2          328            mov     p2, #i8255OUTC
-0128 C2B6            329            clr     WRNOT
-012A 00              330            nop
-012B 00              331            nop
-012C 00              332            nop
-012D 00              333            nop
-012E D2B6            334            setb    WRNOT
-0130 22              335            ret
-                     336    
-                     337    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-                     338    
-0131 0D0A5269        339    STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
-0135 61646961   
-0139 63692073   
-013D 79737465   
-0141 6D206A65   
+0105 C224            287            clr     FLED1     
+0107 D225            288            setb    FLED2     
+0109 C226            289            clr     FLED3     
+010B C227            290            clr     FLED4     
+010D 12016F          291            lcall   WRITEPORTS                  ; zapis informaciu
+0110 020120          292            jmp     ENDPROG
+0113                 293    UP2:
+                     294    
+0113                 295    UP2_MB1:
+                     296    
+0113                 297    UP2_MB2:
+                     298    
+0113                 299    DOWN2_MB1:
+                     300    
+0113                 301    DOWN2_MB2:
+                     302         
+                     303         
+0113                 304    HIGHER:
+0113 120132          305            lcall   READPORTS
+0116 2009FA          306            jb      MB1, HIGHER
+0119 C220            307            clr     UP                        ; inak pod dole
+011B C222            308            clr     FAST                      ; a rychlo
+011D 12016F          309            lcall   WRITEPORTS                ; zapis informaciu              
+0120                 310    ENDPROG:
+                     311            ;----------------------------breakpoint
+0120 C2B3            312    BP:     clr     P3.3
+0122 D2AA            313            setb    EX1
+0124 00              314            nop
+                     315            ;----------------------------
+0125 D218            316            setb    KS
+0127 12016F          317            call    WRITEPORTS                ; zapis novu informaciu
+012A 22              318            ret
+                     319    
+                     320    
+                     321    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     322    ; WAITFORTIMER
+                     323    ; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
+                     324    ; bude timer)
+                     325    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+012B                 326    WAITFORTIMER:
+012B 120132          327            lcall   READPORTS                   ; 
+012E 3011FA          328            jnb     PI2D, WAITFORTIMER           ; ak nebolo stlacene tlacidlo PO1, cakaj 
+0131 22              329            ret
+                     330    
+                     331    
+                     332    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     333    ; READPORTS
+                     334    ; precita nove hodnoty na portoch
+                     335    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0132                 336    READPORTS:
+0132 75A080          337            mov     p2, #i8255INA       ; citaj data z portu A
+0135 75803F          338            mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
+0138 C2B7            339            clr     RDNOT
+013A 00              340            nop
+013B 00              341            nop
+013C 00              342            nop
+013D 00              343            nop
+013E 858028          344            mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
 DEBUG                                                                                                         PAGE 7
 
-0145 20696E69   
-0149 6369616C   
-014D 697A6F76   
-0151 616E792E   
-0155 0D0A00     
-0158 52696164        340    STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 
+0141 D2B7            345            setb    RDNOT
+                     346            
+0143 75A081          347            mov     p2, #i8255INB       ; citaj data z portu B
+0146 7580FE          348            mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
+                                                                               
+0149 C2B7            349            clr     RDNOT
+014B 00              350            nop
+014C 00              351            nop
+014D 00              352            nop
+014E 00              353            nop
+014F 858021          354            mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
+0152 D2B7            355            setb    RDNOT
+                     356    
+0154 75A082          357            mov     p2, #i8255INC       ; citaj data z portu C
+0157 75803F          358            mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
+015A C2B7            359            clr     RDNOT
+015C 00              360            nop
+015D 00              361            nop
+015E 00              362            nop
+015F 00              363            nop
+0160 858022          364            mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
+0163 D2B7            365            setb    RDNOT
+                     366            
+                     367            
+0165 E528            368            mov     A, INPORTA
+0167 541E            369            anl     A, #00011110b
+0169 4223            370            orl     OUTPORTA, A
+016B 12016F          371            call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+                     372            
+016E 22              373            ret
+                     374            
+                     375    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     376    ; WRITEPORTS
+                     377    ; spravi zalohu vystupnych registrov a posle data von
+                     378    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+016F                 379    WRITEPORTS:
+016F 852380          380            mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
+0172 75A0C0          381            mov     p2, #i8255OUTA
+0175 C2B6            382            clr     WRNOT
+0177 00              383            nop
+0178 00              384            nop
+0179 00              385            nop
+017A 00              386            nop
+017B D2B6            387            setb    WRNOT
+                     388            
+017D 852480          389            mov     p0, OUTPORTB        ; potom port B
+0180 75A0C1          390            mov     p2, #i8255OUTB
+0183 C2B6            391            clr     WRNOT
+0185 00              392            nop
+0186 00              393            nop
+0187 00              394            nop
+0188 00              395            nop
+0189 D2B6            396            setb    WRNOT
+                     397    
+018B 852580          398            mov     p0, OUTPORTC        ; a nakoniec port C
+018E 75A0C2          399            mov     p2, #i8255OUTC
+0191 C2B6            400            clr     WRNOT
+0193 00              401            nop
+DEBUG                                                                                                         PAGE 8
+
+0194 00              402            nop
+0195 00              403            nop
+0196 00              404            nop
+0197 D2B6            405            setb    WRNOT
+                     406            
+0199 22              407            ret
+                     408    
+                     409    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     410    
+019A 0D0A5269        411    STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
+019E 61646961   
+01A2 63692073   
+01A6 79737465   
+01AA 6D206A65   
+01AE 20696E69   
+01B2 6369616C   
+01B6 697A6F76   
+01BA 616E792E   
+01BE 0D0A00     
+01C1 52696164        412    STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 
                                                                                00h
-015C 69616369   
-0160 20737973   
-0164 74656D20   
-0168 6A652072   
-016C 65696E69   
-0170 6369616C   
-0174 697A6F76   
-0178 616E7920   
-017C 706F2073   
-0180 746C6163   
-0184 656E6920   
-0188 746C6163   
-018C 69646C61   
-0190 2053544F   
-0194 502E0D0A   
-0198 00         
-0199 4B616C69        341    STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
-019D 62726163   
-01A1 69612076   
-01A5 79746168   
-01A9 75206A65   
-01AD 20756B6F   
-01B1 6E63656E   
-01B5 612E0D0A   
-01B9 00         
-                     342    
-----                 343            DSEG
-0040                 344            org     40h
-0040                 345    STACK:  DS      10h
-                     346    
-                     347    end
+01C5 69616369   
+01C9 20737973   
+01CD 74656D20   
+01D1 6A652072   
+01D5 65696E69   
+01D9 6369616C   
+01DD 697A6F76   
+01E1 616E7920   
+01E5 706F2073   
+01E9 746C6163   
+01ED 656E6920   
+01F1 746C6163   
+01F5 69646C61   
+01F9 2053544F   
+01FD 502E0D0A   
+0201 00         
+0202 4B616C69        413    STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
+0206 62726163   
+020A 69612076   
+020E 79746168   
+0212 75206A65   
+0216 20756B6F   
+021A 6E63656E   
+021E 612E0D0A   
+0222 00         
+                     414    
+----                 415            DSEG
+0040                 416            org     40h
+0040                 417    STACK:  DS      10h
+                     418    
+                     419    end
 
 VERSION 1.2h ASSEMBLY COMPLETE, 0 ERRORS FOUND
-DEBUG                                                                                                         PAGE 8
+DEBUG                                                                                                         PAGE 9
 
 BMDOORCLSD . . . . . . . . . . .    NUMB  0020H  
 BMDOWN . . . . . . . . . . . . .    NUMB  0002H  NOT USED  
@@ -442,29 +516,36 @@ BMSKRHI. . . . . . . . . . . . .    NUMB  0008H
 BMSLOW . . . . . . . . . . . . .    NUMB  0008H  NOT USED  
 BMSTOP . . . . . . . . . . . . .    NUMB  0001H  
 BMUP . . . . . . . . . . . . . .    NUMB  0001H  NOT USED  
-CALIB. . . . . . . . . . . . . .  C ADDR  0090H  
+BP . . . . . . . . . . . . . . .  C ADDR  0120H  NOT USED  
+CALIB. . . . . . . . . . . . . .  C ADDR  0093H  NOT USED  
 CALIBEND . . . . . . . . . . . .  C ADDR  00A8H  
-CALIBLOOP. . . . . . . . . . . .  C ADDR  009DH  
+CALIBLOOP. . . . . . . . . . . .  C ADDR  00A0H  
 CANGO. . . . . . . . . . . . . .  B ADDR  0038H  NOT USED  
 CTRLREG. . . . . . . . . . . . .  D ADDR  0027H  
 DOORCLSD . . . . . . . . . . . .  B ADDR  0045H  NOT USED  
 DOORCLSDOLD. . . . . . . . . . .  B ADDR  0039H  NOT USED  
 DOWN . . . . . . . . . . . . . .  B ADDR  0021H  
+DOWN2_MB1. . . . . . . . . . . .  C ADDR  0113H  NOT USED  
+DOWN2_MB2. . . . . . . . . . . .  C ADDR  0113H  NOT USED  
 DOWNOLD. . . . . . . . . . . . .  B ADDR  003BH  NOT USED  
 DP . . . . . . . . . . . . . . .  B ADDR  000DH  NOT USED  
 DPK. . . . . . . . . . . . . . .  B ADDR  000FH  NOT USED  
 DPZK . . . . . . . . . . . . . .  B ADDR  000EH  NOT USED  
-ENDPROG. . . . . . . . . . . . .  C ADDR  00D1H  NOT USED  
-ESTERAZ. . . . . . . . . . . . .  C ADDR  00C9H  
+ENDPROG. . . . . . . . . . . . .  C ADDR  0120H  
+EX1. . . . . . . . . . . . . . .  B ADDR  00AAH  PREDEFINED  
+F1S. . . . . . . . . . . . . . .  C ADDR  00B7H  
+DEBUG                                                                                                         PAGE 10
+
 FAST . . . . . . . . . . . . . .  B ADDR  0022H  
 FASTOLD. . . . . . . . . . . . .  B ADDR  003CH  NOT USED  
-FLED1. . . . . . . . . . . . . .  B ADDR  0024H  NOT USED  
-FLED2. . . . . . . . . . . . . .  B ADDR  0025H  NOT USED  
-DEBUG                                                                                                         PAGE 9
-
-FLED3. . . . . . . . . . . . . .  B ADDR  0026H  NOT USED  
-FLED4. . . . . . . . . . . . . .  B ADDR  0027H  NOT USED  
-GOUP . . . . . . . . . . . . . .  C ADDR  00AFH  
+FLED1. . . . . . . . . . . . . .  B ADDR  0024H  
+FLED2. . . . . . . . . . . . . .  B ADDR  0025H  
+FLED3. . . . . . . . . . . . . .  B ADDR  0026H  
+FLED4. . . . . . . . . . . . . .  B ADDR  0027H  
+FLOOR1 . . . . . . . . . . . . .  C ADDR  00B4H  NOT USED  
+FLOOR2 . . . . . . . . . . . . .  C ADDR  0101H  
+FLOORREQ . . . . . . . . . . . .  D ADDR  0036H  
+HIGHER . . . . . . . . . . . . .  C ADDR  0113H  
 HIGHEST. . . . . . . . . . . . .  D ADDR  0032H  NOT USED  
 I8255INA . . . . . . . . . . . .    NUMB  0080H  
 I8255INB . . . . . . . . . . . .    NUMB  0081H  
@@ -479,11 +560,11 @@ INPORTB. . . . . . . . . . . . .  D ADDR  0021H
 INPORTBOLD . . . . . . . . . . .  D ADDR  0026H  
 INPORTC. . . . . . . . . . . . .  D ADDR  0022H  
 KS . . . . . . . . . . . . . . .  B ADDR  0018H  
-LEDD . . . . . . . . . . . . . .  B ADDR  002EH  NOT USED  
-LEDU . . . . . . . . . . . . . .  B ADDR  002FH  NOT USED  
+LEDD . . . . . . . . . . . . . .  B ADDR  002EH  
+LEDU . . . . . . . . . . . . . .  B ADDR  002FH  
 LOWEST . . . . . . . . . . . . .  D ADDR  0031H  NOT USED  
-MAIN . . . . . . . . . . . . . .  C ADDR  00AFH  NOT USED  
-MB1. . . . . . . . . . . . . . .  B ADDR  0009H  NOT USED  
+MAIN . . . . . . . . . . . . . .  C ADDR  00B4H  NOT USED  
+MB1. . . . . . . . . . . . . . .  B ADDR  0009H  
 MB1OLD . . . . . . . . . . . . .  B ADDR  0031H  NOT USED  
 MB2. . . . . . . . . . . . . . .  B ADDR  000AH  
 MB2OLD . . . . . . . . . . . . .  B ADDR  0032H  NOT USED  
@@ -493,17 +574,18 @@ OUTPORTBOLD. . . . . . . . . . .  D ADDR  0034H  NOT USED
 OUTPORTC . . . . . . . . . . . .  D ADDR  0025H  
 P0 . . . . . . . . . . . . . . .  D ADDR  0080H  PREDEFINED  
 P2 . . . . . . . . . . . . . . .  D ADDR  00A0H  PREDEFINED  
-PI1. . . . . . . . . . . . . . .  B ADDR  0010H  
-PI2D . . . . . . . . . . . . . .  B ADDR  0011H  NOT USED  
+P3 . . . . . . . . . . . . . . .  D ADDR  00B0H  PREDEFINED  
+PI1. . . . . . . . . . . . . . .  B ADDR  0010H  NOT USED  
+PI2D . . . . . . . . . . . . . .  B ADDR  0011H  
 PI2U . . . . . . . . . . . . . .  B ADDR  0012H  NOT USED  
 PI3D . . . . . . . . . . . . . .  B ADDR  0013H  NOT USED  
 PI3U . . . . . . . . . . . . . .  B ADDR  0014H  NOT USED  
-PI4. . . . . . . . . . . . . . .  B ADDR  0015H  
+PI4. . . . . . . . . . . . . . .  B ADDR  0015H  NOT USED  
 PKI1 . . . . . . . . . . . . . .  B ADDR  0041H  NOT USED  
 PKI2 . . . . . . . . . . . . . .  B ADDR  0042H  NOT USED  
 PKI3 . . . . . . . . . . . . . .  B ADDR  0043H  NOT USED  
 PKI4 . . . . . . . . . . . . . .  B ADDR  0044H  NOT USED  
-PKO1 . . . . . . . . . . . . . .  B ADDR  0019H  NOT USED  
+PKO1 . . . . . . . . . . . . . .  B ADDR  0019H  
 PKO2 . . . . . . . . . . . . . .  B ADDR  001AH  NOT USED  
 PKO3 . . . . . . . . . . . . . .  B ADDR  001BH  NOT USED  
 PKO4 . . . . . . . . . . . . . .  B ADDR  001CH  NOT USED  
@@ -512,16 +594,17 @@ PO2D . . . . . . . . . . . . . .  B ADDR  0029H  NOT USED
 PO2U . . . . . . . . . . . . . .  B ADDR  002AH  NOT USED  
 PO3D . . . . . . . . . . . . . .  B ADDR  002BH  NOT USED  
 PO3U . . . . . . . . . . . . . .  B ADDR  002CH  NOT USED  
+DEBUG                                                                                                         PAGE 11
+
 PO4. . . . . . . . . . . . . . .  B ADDR  002DH  NOT USED  
 POSITION . . . . . . . . . . . .  D ADDR  0030H  NOT USED  
 RDNOT. . . . . . . . . . . . . .  B ADDR  00B7H  
-READPORTS. . . . . . . . . . . .  C ADDR  00D2H  
+READPORTS. . . . . . . . . . . .  C ADDR  0132H  
+RESET. . . . . . . . . . . . . .  C ADDR  0033H  NOT USED  
 SKRD . . . . . . . . . . . . . .  B ADDR  000CH  
 SKRDOLD. . . . . . . . . . . . .  B ADDR  0034H  NOT USED  
-SKRH . . . . . . . . . . . . . .  B ADDR  000BH  
+SKRH . . . . . . . . . . . . . .  B ADDR  000BH  NOT USED  
 SKRHOLD. . . . . . . . . . . . .  B ADDR  0033H  NOT USED  
-DEBUG                                                                                                         PAGE 10
-
 SLOW . . . . . . . . . . . . . .  B ADDR  0023H  NOT USED  
 SLOWOLD. . . . . . . . . . . . .  B ADDR  003DH  NOT USED  
 SP . . . . . . . . . . . . . . .  D ADDR  0081H  PREDEFINED  
@@ -529,13 +612,18 @@ STACK. . . . . . . . . . . . . .  D ADDR  0040H
 START. . . . . . . . . . . . . .  C ADDR  0033H  
 STOPNOT. . . . . . . . . . . . .  B ADDR  0040H  NOT USED  
 STOPTIMER. . . . . . . . . . . .  D ADDR  0033H  
-STR_CALIB. . . . . . . . . . . .  C ADDR  0199H  NOT USED  
-STR_INIT . . . . . . . . . . . .  C ADDR  0131H  NOT USED  
-STR_STOP . . . . . . . . . . . .  C ADDR  0158H  NOT USED  
+STR_CALIB. . . . . . . . . . . .  C ADDR  0202H  NOT USED  
+STR_INIT . . . . . . . . . . . .  C ADDR  019AH  NOT USED  
+STR_STOP . . . . . . . . . . . .  C ADDR  01C1H  NOT USED  
 TIMERCONST . . . . . . . . . . .    NUMB  00FAH  NOT USED  
 UP . . . . . . . . . . . . . . .  B ADDR  0020H  
-UPLOOP . . . . . . . . . . . . .  C ADDR  00BCH  
+UP1. . . . . . . . . . . . . . .  C ADDR  00CFH  
+UP1_MB1. . . . . . . . . . . . .  C ADDR  00F1H  
+UP1_MB2. . . . . . . . . . . . .  C ADDR  00E3H  
+UP2. . . . . . . . . . . . . . .  C ADDR  0113H  NOT USED  
+UP2_MB1. . . . . . . . . . . . .  C ADDR  0113H  NOT USED  
+UP2_MB2. . . . . . . . . . . . .  C ADDR  0113H  NOT USED  
 UPOLD. . . . . . . . . . . . . .  B ADDR  003AH  NOT USED  
-WRITEPORTS . . . . . . . . . . .  C ADDR  0106H  
+WAITFORTIMER . . . . . . . . . .  C ADDR  012BH  
+WRITEPORTS . . . . . . . . . . .  C ADDR  016FH  
 WRNOT. . . . . . . . . . . . . .  B ADDR  00B6H  
-ZASTAVI. . . . . . . . . . . . .  C ADDR  00C2H  NOT USED  

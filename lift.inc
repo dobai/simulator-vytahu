@@ -23,6 +23,10 @@ HIGHEST         data    32h
 STOPTIMER       data    33h
 OUTPORTBold     data    34h
 
+;----------------
+FLOORREQ        data    36h
+;----------------
+
 STOPNOT         bit     INPORTA.0
 PKI1            bit     INPORTA.1
 PKI2            bit     INPORTA.2

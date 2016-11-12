@@ -174,7 +174,7 @@ MAIN_STOPBNEND:
         mov     HIGHEST, #2
         mov     C, PKI3
         orl     C, PI3U
-        orl     C, PI3D
+        orl     cccf, PI3D
         jnc     $+5
         mov     HIGHEST, #4
         mov     C, PKI4
@@ -780,5 +780,3 @@ STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
 STACK:  DS      10h
 
 end
-
-
