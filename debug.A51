@@ -22,14 +22,14 @@ LJNZ    MACRO   NAVESTIE
         nop
 ENDM
 
-LJB     MACRO   NAVESTIE
-        jnb     $+5
+LJB     MACRO   TESTBIT, NAVESTIE
+        jnb     TESTBIT, $+5
         ljmp    NAVESTIE
         nop
 ENDM
 
-LJNB    MACRO   NAVESTIE
-        jb      $+5
+LJNB    MACRO   TESTBIT, NAVESTIE
+        jb      TESTBIT, $+5
         ljmp    NAVESTIE
         nop
 ENDM
@@ -170,6 +170,7 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
 UP1:
                 POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
 UP1A:   lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP1A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -178,6 +179,7 @@ UP1A:   lcall   READPORTS       ; nacitanie dat
         jmp     UP1_MB2       ;-; a prejdi do stavu UP1_MB2
 UP1_MB2:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;   
@@ -190,6 +192,7 @@ UP1_MB2:
         jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
 UP1_MB1:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00000100b ;-;
@@ -249,6 +252,7 @@ F2DOWN: setb    DOWN            ; rychly pohyb hore
 UP2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
 UP2A:   lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP2A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -257,6 +261,7 @@ UP2A:   lcall   READPORTS       ; nacitanie dat
         jmp     UP2_MB2       ;-; a prejdi do stavu UP2_MB2
 UP2_MB2:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -269,6 +274,7 @@ UP2_MB2:
         jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
 UP2_MB1:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00001000b ;-;
@@ -369,6 +375,7 @@ F3DOWN: setb    DOWN            ; rychly pohyb hore
 UP3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
 UP3A:   lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP3A     ;-; mame uz 1. spomalovaciu clonku?
         lcall   READPORTS       ; ak ano, sme z nej uz prec?
         jnb     MB2, $-3        ;       
@@ -377,6 +384,7 @@ UP3A:   lcall   READPORTS       ; nacitanie dat
         jmp     UP3_MB2       ;-; a prejdi do stavu UP3_MB2
 UP3_MB2:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
@@ -389,6 +397,7 @@ UP3_MB2:
         jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
 UP3_MB1:
         lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         jb      MB1, UP3_MB1  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
@@ -581,8 +590,14 @@ READPORTS:
         nop
         mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
         setb    RDNOT
-        
-        
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
         mov     A, INPORTA
         anl     A, #00011110b
         orl     OUTPORTA, A
@@ -621,7 +636,14 @@ WRITEPORTS:
         nop
         nop
         setb    WRNOT
-        
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
         ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
