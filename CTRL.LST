@@ -1,0 +1,1282 @@
+VYTAH/ORI                                                                                                     PAGE 1
+
+                       1    $MOD51
+                       2    $DEBUG
+                       3    
+                =1     4    $include (lift.inc)
+                =1     5    ; adresy I/O portov, ktore pridu na port P2 89C52-ky
+  0080          =1     6    i8255INA        equ     080h
+  0081          =1     7    i8255INB        equ     081h
+  0082          =1     8    i8255INC        equ     082h
+  0083          =1     9    i8255INCW       equ     083h
+  00C0          =1    10    i8255OUTA       equ     0c0h
+  00C1          =1    11    i8255OUTB       equ     0c1h
+  00C2          =1    12    i8255OUTC       equ     0c2h
+  00C3          =1    13    i8255OUTCW      equ     0c3h
+                =1    14    
+  0028          =1    15    INPORTA         data    28h         ; nutne kvoli emulatoru!!!
+  0021          =1    16    INPORTB         data    21h
+  0022          =1    17    INPORTC         data    22h
+  0023          =1    18    OUTPORTA        data    23h
+  0024          =1    19    OUTPORTB        data    24h
+  0025          =1    20    OUTPORTC        data    25h
+  0026          =1    21    INPORTBold      data    26h
+  0027          =1    22    CTRLREG         data    27h
+                =1    23    
+  0030          =1    24    POSITION        data    30h
+  0031          =1    25    LOWEST          data    31h
+  0032          =1    26    HIGHEST         data    32h
+  0033          =1    27    STOPTIMER       data    33h
+  0034          =1    28    OUTPORTBold     data    34h
+                =1    29    
+  0040          =1    30    STOPNOT         bit     INPORTA.0
+  0041          =1    31    PKI1            bit     INPORTA.1
+  0042          =1    32    PKI2            bit     INPORTA.2
+  0043          =1    33    PKI3            bit     INPORTA.3
+  0044          =1    34    PKI4            bit     INPORTA.4
+  0045          =1    35    DOORCLSD        bit     INPORTA.5 
+                =1    36    
+  0009          =1    37    MB1             bit     INPORTB.1       ; clonky maju invertovanu logiku
+  000A          =1    38    MB2             bit     INPORTB.2
+  000B          =1    39    SKRH            bit     INPORTB.3
+  000C          =1    40    SKRD            bit     INPORTB.4
+  000D          =1    41    DP              bit     INPORTB.5
+  000E          =1    42    DPZK            bit     INPORTB.6
+  000F          =1    43    DPK             bit     INPORTB.7
+                =1    44    
+  0031          =1    45    MB1old          bit     INPORTBold.1
+  0032          =1    46    MB2old          bit     INPORTBold.2
+  0033          =1    47    SKRHold         bit     INPORTBold.3
+  0034          =1    48    SKRDold         bit     INPORTBold.4
+                =1    49    
+  0010          =1    50    PI1             bit     INPORTC.0
+  0011          =1    51    PI2D            bit     INPORTC.1
+  0012          =1    52    PI2U            bit     INPORTC.2
+  0013          =1    53    PI3D            bit     INPORTC.3
+  0014          =1    54    PI3U            bit     INPORTC.4
+  0015          =1    55    PI4             bit     INPORTC.5
+                =1    56    
+  0018          =1    57    KS              bit     OUTPORTA.0
+  0019          =1    58    PKO1            bit     OUTPORTA.1
+VYTAH/ORI/CTRL                                                                                               PAGE 2
+
+  001A          =1    59    PKO2            bit     OUTPORTA.2
+  001B          =1    60    PKO3            bit     OUTPORTA.3
+  001C          =1    61    PKO4            bit     OUTPORTA.4
+                =1    62    
+  0020          =1    63    UP              bit     OUTPORTB.0
+  0021          =1    64    DOWN            bit     OUTPORTB.1
+  0022          =1    65    FAST            bit     OUTPORTB.2
+  0023          =1    66    SLOW            bit     OUTPORTB.3
+  0024          =1    67    FLED1           bit     OUTPORTB.4
+  0025          =1    68    FLED2           bit     OUTPORTB.5
+  0026          =1    69    FLED3           bit     OUTPORTB.6
+  0027          =1    70    FLED4           bit     OUTPORTB.7
+                =1    71    
+  0028          =1    72    PO1             bit     OUTPORTC.0
+  0029          =1    73    PO2D            bit     OUTPORTC.1
+  002A          =1    74    PO2U            bit     OUTPORTC.2
+  002B          =1    75    PO3D            bit     OUTPORTC.3
+  002C          =1    76    PO3U            bit     OUTPORTC.4
+  002D          =1    77    PO4             bit     OUTPORTC.5
+  002E          =1    78    LEDD            bit     OUTPORTC.6
+  002F          =1    79    LEDU            bit     OUTPORTC.7
+                =1    80    
+  0038          =1    81    CANGO           bit     CTRLREG.0
+  0039          =1    82    DOORCLSDold     bit     CTRLREG.1
+  003A          =1    83    UPold           bit     CTRLREG.2
+  003B          =1    84    DOWNold         bit     CTRLREG.3
+  003C          =1    85    FASTold         bit     CTRLREG.4
+  003D          =1    86    SLOWold         bit     CTRLREG.5
+                =1    87    
+  00B6          =1    88    WRNOT           bit     0b6h        ; p3.6
+  00B7          =1    89    RDNOT           bit     0b7h        ; p3.7
+                =1    90    
+                =1    91    ; bitove masky
+                =1    92    ; 8255OUT 
+                =1    93    ; port A
+  0001          =1    94    bmKS              equ    00000001b
+  0002          =1    95    bmPKO1            equ    00000010b
+  0004          =1    96    bmPKO2            equ    00000100b
+  0008          =1    97    bmPKO3            equ    00001000b
+  0010          =1    98    bmPKO4            equ    00010000b
+                =1    99    
+                =1   100    ; port B
+  0001          =1   101    bmUP              equ    00000001b
+  0002          =1   102    bmDOWN            equ    00000010b
+  0004          =1   103    bmFAST            equ    00000100b
+  0008          =1   104    bmSLOW            equ    00001000b
+  0010          =1   105    bmFLED1           equ    00010000b
+  0020          =1   106    bmFLED2           equ    00100000b
+  0040          =1   107    bmFLED3           equ    01000000b
+  0080          =1   108    bmFLED4           equ    10000000b
+                =1   109    
+                =1   110    ; port C
+  0001          =1   111    bmPO1             equ    00000001b
+  0002          =1   112    bmPO2D            equ    00000010b
+  0004          =1   113    bmPO2U            equ    00000100b
+  0008          =1   114    bmPO3D            equ    00001000b
+  0010          =1   115    bmPO3U            equ    00010000b
+  0020          =1   116    bmPO4             equ    00100000b
+VYTAH/ORI/CTRL                                                                                               PAGE 3
+
+  0040          =1   117    bmLEDD            equ    01000000b
+  0080          =1   118    bmLEDU            equ    10000000b
+                =1   119    
+                =1   120    ; 8255IN
+                =1   121    ; port A
+  0001          =1   122    bmSTOP            equ    00000001b
+  0002          =1   123    bmPKI1            equ    00000010b
+  0004          =1   124    bmPKI2            equ    00000100b
+  0008          =1   125    bmPKI3            equ    00001000b
+  0010          =1   126    bmPKI4            equ    00010000b
+  0020          =1   127    bmDOORCLSD        equ    00100000b
+                =1   128    
+                =1   129    ; port B
+  0002          =1   130    bmMB1I            equ    00000010b
+  0004          =1   131    bmMB2I            equ    00000100b
+  0008          =1   132    bmSKRHI           equ    00001000b
+  0010          =1   133    bmSKRHD           equ    00010000b
+  0020          =1   134    bmDPI             equ    00100000b
+  0040          =1   135    bmDPZKI           equ    01000000b
+  0080          =1   136    bmDPKI            equ    10000000b
+                =1   137    
+                =1   138    ; port C
+  0001          =1   139    bmPI1             equ    00000001b
+  0002          =1   140    bmPI2D            equ    00000010b
+  0004          =1   141    bmPI2U            equ    00000100b
+  0008          =1   142    bmPI3D            equ    00001000b
+  0010          =1   143    bmPI3U            equ    00010000b
+  0020          =1   144    bmPI4             equ    00100000b
+                =1   145    
+                     146    
+                     147    ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
+  00FA               148    TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunika
+                                                                               cie
+                     149                                    ; hodnota 250 znamena prenosovu rychlost 4800 baud pri oscil
+                                                                               atore 11.0592MHz
+                     150                                    ; nastavenie terminalu je 4800 8-N-1, no flow control
+                     151                               
+  0030               152    STOPDELAY       equ     48      ; pocet cyklov expiracie casovaca T0 po zastaveni - zodpoved
+                                                                               a 3 sekundam 
+  0020               153    STOPDPKDELAY    equ     32      ; pocet cyklov expiracie casovaca T0 po prvom vyprsani (2 se
+                                                                               kundy), ak je zapnuty spinac DPK
+                     154    
+                     155    ;osetrenie vektorov preruseni
+0000                 156            org     0000h           ; adresa odkial startuje program po resete
+0000 020033          157            ljmp    START           ; skok na zaciatok kodu programu
+                     158    
+                     159    ;        org     0003h           ; prerusenie INT0/STOP#
+                     160    ;        ljmp    INT_STOP        ; obsluha stlacenia tlacitka STOP
+                     161                            
+000B                 162            org     000Bh           ; v tejto casti pamati je vektor prerusenia
+000B 0204F0          163            ljmp    INT_TIMER0      ; pre citac T0
+                     164    
+                     165    ;        org     0023h           ; prerusenie seriovej linky
+                     166    ;        ljmp    INT_SERIAL      ; obsluha prerusenia seriovej linky
+                     167    
+0033                 168            org     0033h           ; od tejto adresy sa zacina kod programu
+                     169    
+0033                 170    START:  
+VYTAH/ORI                                                                                                    PAGE 4
+
+                     171            ; riadiace signaly do pasivnej urovne
+0033 D2B6            172            setb    WRNOT
+0035 D2B7            173            setb    RDNOT
+0037 753300          174            mov     STOPTIMER, #0
+003A 758140          175            mov     SP, #STACK
+                     176    
+                     177            ; pockame si na inicializaciu obvodov 8255  
+003D 7900            178            mov     R1, #0 
+003F 7AFF            179            mov     R2, #0ffh
+0041 D9FE            180            djnz    R1, $
+0043 DAFC            181            djnz    R2, $-2
+                     182            
+                     183            ; teraz ich mozeme nastavit
+0045 75809B          184            mov     p0, #10011011b      ; nastavenie i8255IN - vsetky porty dnu
+0048 75A083          185            mov     p2, #i8255INCW
+004B C2B6            186            clr     WRNOT
+004D 00              187            nop
+004E 00              188            nop
+004F 00              189            nop
+0050 00              190            nop
+0051 D2B6            191            setb    WRNOT
+0053 758080          192            mov     p0, #10000000b      ; nastavenie i8255OUT - vsetky porty von
+0056 75A0C3          193            mov     p2, #i8255OUTCW
+0059 C2B6            194            clr     WRNOT
+005B 00              195            nop
+005C 00              196            nop
+005D 00              197            nop
+005E 00              198            nop
+005F D2B6            199            setb    WRNOT
+                     200    
+                     201            ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
+0061 752800          202            mov     INPORTA, #0
+0064 75211E          203            mov     INPORTB, #01eh      ; vsetky clonky pasivne
+0067 752200          204            mov     INPORTC, #0
+006A 75231E          205            mov     OUTPORTA, #(bmPKO1 or bmPKO2 or bmPKO3 or bmPKO4)
+006D 7524F0          206            mov     OUTPORTB, #(bmFLED1 or bmFLED2 or bmFLED3 or bmFLED4)
+0070 7525FF          207            mov     OUTPORTC, #(bmPO1 or bmPO2D or bmPO2U or bmPO3D or bmPO3U or bmPO4 or bmLEDD
+                                                                                or bmLEDU)
+0073 D218            208            setb    KS
+0075 120471          209            call    WRITEPORTS          ; zapis novu informaciu
+                     210    ;;;;;;;;
+                     211    
+0078 752300          212            mov     OUTPORTA, #0
+007B 752400          213            mov     OUTPORTB, #0
+007E 752500          214            mov     OUTPORTC, #0
+0081 120471          215            call    WRITEPORTS          ; zapis novu informaciu
+                     216    
+0084 752800          217            mov     INPORTA, #0
+0087 752100          218            mov     INPORTB, #0         
+008A 752200          219            mov     INPORTC, #0
+008D 12043D          220            call    READPORTS           ; prvotne nacitanie udajov
+                     221    
+0090 C28E            222            clr     TR1                 ; zastavi sa citac T1
+0092 C28C            223            clr     TR0                 ; a tiez citac T0
+0094 759852          224            mov     SCON,#01010010b     ; nastavenie registra SCON
+                     225                                        ; mod 1 (8b UART), SM2=0 (jednoprocesorovy system)
+                     226                                        ; REN=1, 0, 0, TI=1 (vysielaci register je prazdny)
+                     227                                        ; RI=0 (prijimaci register - nebol prijaty znak)
+VYTAH/ORI$gCTRL                                                                                               PAGE 5
+
+0097 758801          228            mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu
+009A 758921          229            mov     TMOD,#00100001b     ; nastavenie TMOD registra
+                     230                                        ; T1: mod 2 - po preteceni sa TL nastavi na hodnotu TH
+                     231                                        ; GATE=0 (programove riadenie casovaca)
+                     232                                        ; C/T#=0 interne hodiny/12
+                     233                                        ; T0: mod 1 - 16 bitove pocitadlo
+                     234                                        ; GATE=0 (programove riadenie casovaca)
+                     235                                        ; C/T#=0 interne hodiny/12
+009D 758700          236            mov     PCON,#00000000b     ; najvyssi bit musi byt 0, aby sa nezdvojnasobila prenos
+                                                                               ova rychlost seriovej linky
+00A0 758BFA          237            mov     TL1,#TIMERCONST     ; inicializacia casovaca T1
+00A3 758DFA          238            mov     TH1,#TIMERCONST     ; 
+00A6 758A00          239            mov     TL0, #00h           ; inicializacia casovaca T0 - 57600 = 0e100h
+00A9 758CE1          240            mov     TH0, #0e1h
+                     241    
+00AC D28E            242            setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
+                     243    
+                     244    ;        setb    EX0                 ; prerusenie INT0  - ostava zakazane, signal STOP osetr
+                                                                               ime priamo v hlavnej slucke
+                     245    ;        setb    ES                  ; prerusenie seriovej linky teraz nevyuzivame
+00AE D2A9            246            setb    ET0                 ; povolime prerusenia od casovaca T0
+00B0 D2AF            247            setb    EA                  ; spust cely prerusovaci mechanizmus
+                     248            
+00B2 90051F          249            mov     DPTR, #STR_INIT         ; vypis info 
+00B5 1204AC          250            lcall   DISPSTR                 ; o inicializacii
+                     251    
+                     252            ;kalibracia vytahu podla dolnej porovnavacej clonky
+00B8 12043D          253            lcall   READPORTS                   ; precitaj, co je na portoch
+00BB 300C10          254            jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koni
+                                                                               ec
+00BE D221            255            setb    DOWN                        ; inak pod dole
+00C0 D222            256            setb    FAST                        ; a rychlo
+00C2 120471          257            lcall   WRITEPORTS                  ; zapis informaciu 
+00C5                 258    CALIBLOOP:
+00C5 120433          259            lcall   TIME1MS
+00C8 12043D          260            lcall   READPORTS                   ; pozri sa, ci uz sme dole
+00CB 200CF7          261            jb      SKRD, CALIBLOOP             ; ak este nie, tak opakuj
+                     262    
+00CE                 263    CALIBEND:
+00CE 752700          264            mov     CTRLREG, #0                 ; vynuluj riadiaci register
+00D1 753000          265            mov     POSITION, #0                ; pozicia 0 - prve poschodie
+00D4 75261C          266            mov     INPORTBold, #00011100b      ; vsetky clonky pasivne okrem MB1
+00D7 753410          267            mov     OUTPORTBold, #10h           ; FLED1 je zapnute
+00DA A245            268            mov     C, DOORCLSD
+00DC 9239            269            mov     DOORCLSDold, C              ; uchovaj prvotny priznak zatvorenia dveri
+00DE 752300          270            mov     OUTPORTA, #0                ; vynuluj vsetky
+00E1 752400          271            mov     OUTPORTB, #0                ; vystupne
+00E4 752500          272            mov     OUTPORTC, #0                ; registre
+                     273            
+00E7 D222            274            setb    FAST                        ; zo zaciatku pojdeme rychlo
+00E9 D238            275            setb    CANGO                       ; hybat sa mozeme
+                     276    
+00EB 204504          277            jb      DOORCLSD, CALIB_DPK         ; ak dvere su zavrete, tak preskoc
+00EE C238            278            clr     CANGO                       ; v opacnom pripade sa nemozeme hybat
+00F0 C222            279            clr     FAST                        ; a zastav
+                     280            
+00F2                 281    CALIB_DPK:
+00F2 300F07          282            jnb     DPK, CALIBDONE              ; ak je hned na zaciatku kriticky zatazena kabin
+VYTAH/ORI,BCTRL                                                                                               PAGE 6
+
+                                                                               a, tak budeme stat
+00F5 C238            283            clr     CANGO                       ; nemozeme sa hybat; najblizsie sa bude dat az p
+                                                                               o uplynuti casovaca alebo po otvoreni a z
+                                                                               atvoreni dveri
+00F7 753330          284            mov     STOPTIMER, #STOPDELAY       ; nastav casovac, po uplynuti ktoreho sa zas bud
+                                                                               eme moct hybat
+00FA D28C            285            setb    TR0                         ; a spust ho
+00FC                 286    CALIBDONE:        
+00FC 120471          287            lcall   WRITEPORTS                  ; zapis info na porty (ak sa kalibroval vytah, t
+                                                                               ak zastavi)
+00FF 900587          288            mov     DPTR, #STR_CALIB
+0102 1204AC          289            lcall   DISPSTR                     ; a zobraz info o uspesnom ukonceni kalibracie
+                     290      
+0105                 291    MAIN:
+0105 120433          292            call    TIME1MS                 ; daj si pauzu
+0108 12043D          293            call    READPORTS               ; precitaj nove udaje 
+                     294    
+                     295            ; a tu zacina zabava - treba spracovat, co sa nacitalo
+010B E522            296            mov     A, INPORTC              ; nastav na vystupoch privolavacov to iste ako na vs
+                                                                               tupoch
+010D 543F            297            anl     A, #00111111b
+010F 4225            298            orl     OUTPORTC, A
+0111 E528            299            mov     A, INPORTA
+0113 541E            300            anl     A, #00011110b
+0115 4223            301            orl     OUTPORTA, A
+0117 120471          302            call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+                     303            
+011A 204006          304            jb      STOPNOT, MAIN_STOPBNEND ; ak tlacitko STOP nie je stlacene, tak pokracuj
+011D 1204BB          305            lcall   STOP_RESET              ; v opacnom pripade stojime
+0120 0203CB          306            ljmp    MAIN_DOORCHK
+                     307            
+0123                 308    MAIN_STOPBNEND:
+                     309            ; zisti najvyssie a najnizsie poschodie, na ktore je privolany vytah
+0123 753200          310            mov     HIGHEST, #0
+0126 A242            311            mov     C, PKI2
+0128 7212            312            orl     C, PI2U
+012A 7211            313            orl     C, PI2D
+012C 5003            314            jnc     $+5
+012E 753202          315            mov     HIGHEST, #2
+0131 A243            316            mov     C, PKI3
+0133 7214            317            orl     C, PI3U
+0135 7213            318            orl     C, PI3D
+0137 5003            319            jnc     $+5
+0139 753204          320            mov     HIGHEST, #4
+013C A244            321            mov     C, PKI4
+013E 7215            322            orl     C, PI4
+0140 5003            323            jnc     $+5
+0142 753205          324            mov     HIGHEST, #5
+0145 753105          325            mov     LOWEST, #5
+0148 A243            326            mov     C, PKI3
+014A 7214            327            orl     C, PI3U
+014C 7213            328            orl     C, PI3D
+014E 5003            329            jnc     $+5
+0150 753104          330            mov     LOWEST, #4
+0153 A242            331            mov     C, PKI2
+0155 7212            332            orl     C, PI2U
+0157 7211            333            orl     C, PI2D
+0159 5003            334            jnc     $+5
+VYTAH/ORI+CTRL                                                                                               PAGE 7
+
+015B 753102          335            mov     LOWEST, #2
+015E A241            336            mov     C, PKI1
+0160 7210            337            orl     C, PI1
+0162 5003            338            jnc     $+5
+0164 753100          339            mov     LOWEST, #0
+                     340    
+                     341            ; teraz zistime, ci bol vytah privolavany na ine poschodie, ako prave stojime
+0167 C3              342            clr     C
+0168 E532            343            mov     A, HIGHEST
+016A 9531            344            subb    A, LOWEST
+016C B4001F          345            cjne    A, #0, MAIN_POSITION    ; ak sa najvyssie a najnizsie poschodia nerovnaju, t
+                                                                               ak tu sme skoncili
+016F E532            346            mov     A, HIGHEST
+0171 9530            347            subb    A, POSITION
+0173 B40018          348            cjne    A, #0, MAIN_POSITION    ; ak momentalne jedine privolavane poschodie nie je 
+                                                                               to, na ktorom sme, tak pokracuj
+0176 A220            349            mov     C, UP
+0178 7221            350            orl     C, DOWN
+017A 4012            351            jc      MAIN_POSITION           ; ak sa este hybeme, tak pokracuj
+017C 5323E1          352            anl     OUTPORTA, #11100001b    ; je privolavane poschodie, na ktorom stojime - takz
+                                                                               e volbu zrusime a skoncime
+017F 752800          353            mov     INPORTA, #0
+0182 5325C0          354            anl     OUTPORTC, #11000000b
+0185 752200          355            mov     INPORTC, #0
+0188 120471          356            call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+018B 0203CB          357            ljmp    MAIN_DOORCHK            ; a chod az na kontrolu dveri
+                     358    
+018E                 359    MAIN_POSITION:
+                     360            ; teraz prebehne kontrola pozicie vytahu - ta sa odvija od stavu spomalovacej clonky
+                                                                               
+018E 200A05          361            jb      MB2,$+8                 ; ak je spomalovacia clonka vypnuta
+0191 C232            362            clr     MB2old
+0193 02028F          363            ljmp    MAIN_POSEND
+0196 303203          364            jnb     MB2old, $+6             ; a bola zapnuta pri minulom citani
+0199 02028F          365            ljmp    MAIN_POSEND
+                     366    
+019C 300F04          367            jnb     DPK, $+7                ; najprv skontrolujeme podlahovy spinac DPK - kritic
+                                                                               ke zatazenie
+019F D223            368            setb    SLOW                    ; ak je kriticke zatazenie, tak budeme stat, teda za
+                                                                               pni pomaly pohyb
+01A1 C222            369            clr     FAST                    ; a vypni rychly                                    
+                                                                                                                   
+                     370    
+01A3 202106          371            jb      DOWN, MAIN_POS0         ; zmenime polohu
+01A6 E530            372            mov     A, POSITION
+01A8 2402            373            add     A, #2                   ; inkrementuj poziciu, ak ideme hore
+01AA F530            374            mov     POSITION, A
+                     375            
+01AC                 376    MAIN_POS0:
+01AC 1530            377            dec     POSITION                ; dekrementuj poziciu, ak ideme dole
+01AE D232            378            setb    MB2old                  ; nastav flag
+01B0 74F0            379            mov     A, #(bmFLED1 or bmFLED2 or bmFLED3 or bmFLED4)
+01B2 F4              380            cpl     A                       
+01B3 5224            381            anl     OUTPORTB, A             ; zhasneme vsetky indikatory polohy
+01B5 E530            382            mov     A, POSITION
+                     383            
+01B7 B40009          384            cjne    A, #0, MAIN_POS1
+01BA D224            385            setb    FLED1                   ; pozicia 0 - prve poschodie
+VYTAH/ORI(CTRL                                                                                               PAGE 8
+
+01BC D223            386            setb    SLOW                    ; tak zapni pomaly pohyb
+01BE C222            387            clr     FAST
+01C0 02028F          388            ljmp    MAIN_POSEND
+                     389            
+01C3                 390    MAIN_POS1:
+01C3 B40107          391            cjne    A, #1, MAIN_POS2
+01C6 D224            392            setb    FLED1
+01C8 D225            393            setb    FLED2                   ; pozicia 1 - medzi prvym a druhym poschodim
+01CA 02028F          394            ljmp    MAIN_POSEND
+                     395            
+01CD                 396    MAIN_POS2:
+01CD B40251          397            cjne    A, #2, MAIN_POS3
+01D0 D225            398            setb    FLED2                   ; pozicia 2 - druhe poschodie
+01D2 303A26          399            jnb     UPold, MAIN_POS2D       ; ak nejdeme hore, tak preskoc
+01D5 E532            400            mov     A, HIGHEST
+01D7 B40206          401            cjne    A, #2, MAIN_POS2UDPZK   ; ak je toto poschodie najvyssie
+01DA D223            402            setb    SLOW                    ; tak zapni pomaly pohyb
+01DC C222            403            clr     FAST
+01DE 800C            404            sjmp    MAIN_POS2UDPZKEND
+01E0                 405    MAIN_POS2UDPZK:
+01E0 204209          406            jb      PKI2, MAIN_POS2UDPZKEND ; ak je privolany zvnutra kabiny, tak moze zastavit 
+                                                                               - pokracuj v testovani
+01E3 A212            407            mov     C, PI2U                 ; v opacnom pripade sa pozri, ci nebol privolany zvo
+                                                                               nku
+01E5 820E            408            anl     C, DPZK                 ; pocas plneho zatazenia
+01E7 5003            409            jnc     MAIN_POS2UDPZKEND       ; nie? tak pokracuj v standardnom testovani
+01E9 02028F          410            ljmp    MAIN_POSEND             ; inak sme tu skoncili - rychlosti nechaj povodne
+01EC                 411    MAIN_POS2UDPZKEND:        
+01EC A242            412            mov     C, PKI2                 ; zistime, ci sa neblizime k cielovej stanici zdola
+                                                                               
+01EE 7212            413            orl     C, PI2U
+01F0 823A            414            anl     C, UPold
+01F2 5004            415            jnc     $+6                     ; ak sa blizime
+01F4 D223            416            setb    SLOW                    ; tak zapni pomaly pohyb
+01F6 C222            417            clr     FAST
+01F8 02028F          418            ljmp    MAIN_POSEND
+01FB                 419    MAIN_POS2D:
+01FB E531            420            mov     A, LOWEST
+01FD B40206          421            cjne    A, #2, MAIN_POS2DDPZK   ; ak je toto poschodie najnizsie
+0200 D223            422            setb    SLOW                    ; tak zapni pomaly pohyb
+0202 C222            423            clr     FAST
+0204 800C            424            sjmp    MAIN_POS2DDPZKEND
+0206                 425    MAIN_POS2DDPZK:
+0206 204209          426            jb      PKI2, MAIN_POS2DDPZKEND ; ak je privolany zvnutra kabiny, tak moze zastavit 
+                                                                               - pokracuj v testovani
+0209 A211            427            mov     C, PI2D                 ; v opacnom pripade sa pozri, ci nebol privolany zvo
+                                                                               nku
+020B 820E            428            anl     C, DPZK                 ; pocas plneho zatazenia
+020D 5003            429            jnc     MAIN_POS2DDPZKEND       ; nie? tak pokracuj v standardnom testovani
+020F 02028F          430            ljmp    MAIN_POSEND             ; inak sme tu skoncili - rychlosti nechaj povodne
+0212                 431    MAIN_POS2DDPZKEND:        
+0212 A242            432            mov     C, PKI2                 ; zistime, ci sa neblizime k cielovej stanici zhora
+                                                                               
+0214 7211            433            orl     C, PI2D
+0216 823B            434            anl     C, DOWNold
+0218 5004            435            jnc     $+6                     ; ak sa blizime
+021A D223            436            setb    SLOW                    ; tak zapni pomaly pohyb
+021C C222            437            clr     FAST
+VYTAH/ORInCTRL                                                                                               PAGE 9
+
+021E 02028F          438            ljmp    MAIN_POSEND
+                     439            
+0221                 440    MAIN_POS3:
+0221 B40307          441            cjne    A, #3, MAIN_POS4
+0224 D225            442            setb    FLED2
+0226 D226            443            setb    FLED3                   ; pozicia 3 - medzi druhym a tretim poschodim
+0228 02028F          444            ljmp    MAIN_POSEND
+                     445            
+022B                 446    MAIN_POS4:
+022B B40451          447            cjne    A, #4, MAIN_POS5
+022E D226            448            setb    FLED3                   ; pozicia 4 - tretie poschodie
+0230 303A26          449            jnb     UPold, MAIN_POS4D       ; ak nejdeme hore, tak preskoc
+0233 E532            450            mov     A, HIGHEST
+0235 B40406          451            cjne    A, #4, MAIN_POS4UDPZK   ; ak je toto poschodie najvyssie
+0238 D223            452            setb    SLOW                    ; tak zapni pomaly pohyb
+023A C222            453            clr     FAST
+023C 800C            454            sjmp    MAIN_POS4UDPZKEND
+023E                 455    MAIN_POS4UDPZK:
+023E 204309          456            jb      PKI3, MAIN_POS4UDPZKEND ; ak je privolany zvnutra kabiny, tak moze zastavit 
+                                                                               - pokracuj v testovani
+0241 A214            457            mov     C, PI3U                 ; v opacnom pripade sa pozri, ci nebol privolany zvo
+                                                                               nku
+0243 820E            458            anl     C, DPZK                 ; pocas plneho zatazenia
+0245 5003            459            jnc     MAIN_POS4UDPZKEND       ; nie? tak pokracuj v standardnom testovani
+0247 02028F          460            ljmp    MAIN_POSEND             ; inak sme tu skoncili - rychlosti nechaj povodne
+024A                 461    MAIN_POS4UDPZKEND:        
+024A A243            462            mov     C, PKI3                 ; zistime, ci sa neblizime k cielovej stanici zdola
+                                                                               
+024C 7214            463            orl     C, PI3U
+024E 823A            464            anl     C, UPold
+0250 5004            465            jnc     $+6                     ; ak sa blizime
+0252 D223            466            setb    SLOW                    ; tak zapni pomaly pohyb
+0254 C222            467            clr     FAST
+0256 02028F          468            ljmp    MAIN_POSEND
+0259                 469    MAIN_POS4D:
+0259 E531            470            mov     A, LOWEST
+025B B40406          471            cjne    A, #4, MAIN_POS4DDPZK   ; ak je toto poschodie najnizsie
+025E D223            472            setb    SLOW                    ; tak zapni pomaly pohyb
+0260 C222            473            clr     FAST
+0262 800C            474            sjmp    MAIN_POS4DDPZKEND
+0264                 475    MAIN_POS4DDPZK:
+0264 204309          476            jb      PKI3, MAIN_POS4DDPZKEND ; ak je privolany zvnutra kabiny, tak moze zastavit 
+                                                                               - pokracuj v testovani
+0267 A213            477            mov     C, PI3D                 ; v opacnom pripade sa pozri, ci nebol privolany zvo
+                                                                               nku
+0269 820E            478            anl     C, DPZK                 ; pocas plneho zatazenia
+026B 5003            479            jnc     MAIN_POS4DDPZKEND       ; nie? tak pokracuj v standardnom testovani
+026D 02028F          480            ljmp    MAIN_POSEND             ; inak sme tu skoncili - rychlosti nechaj povodne
+0270                 481    MAIN_POS4DDPZKEND:        
+0270 A243            482            mov     C, PKI3                 ; zistime, ci sa neblizime k cielovej stanici zhora
+                                                                               
+0272 7213            483            orl     C, PI3D
+0274 823B            484            anl     C, DOWNold
+0276 5004            485            jnc     $+6                     ; ak sa blizime
+0278 D223            486            setb    SLOW                    ; tak zapni pomaly pohyb
+027A C222            487            clr     FAST
+027C 02028F          488            ljmp    MAIN_POSEND
+                     489            
+VYTAH/ORI
+LCTRL                                                                                               PAGE 10
+
+027F                 490    MAIN_POS5:
+027F B40507          491            cjne    A, #5, MAIN_POS6
+0282 D226            492            setb    FLED3
+0284 D227            493            setb    FLED4                   ; pozicia 5 - medzi tretim a stvrtym poschodim
+0286 02028F          494            ljmp    MAIN_POSEND
+                     495            
+0289                 496    MAIN_POS6:
+0289 D227            497            setb    FLED4                   ; pozicia 6 - stvrte poschodie
+028B D223            498            setb    SLOW                    ; tak zapni pomaly pohyb
+028D C222            499            clr     FAST
+028F                 500    MAIN_POSEND:
+                     501    
+028F                 502    MAIN_MOVE:
+                     503            ; tu vybavime pohyb vytahu
+028F 303838          504            jnb     CANGO, MAIN_STOP
+0292 A23A            505            mov     C, UPold                ; najprv skus zapisat stare hodnoty smeru pohybu
+0294 9220            506            mov     UP, C
+0296 A23B            507            mov     C, DOWNold
+0298 9221            508            mov     DOWN, C
+029A 723A            509            orl     C, UPold
+029C 402C            510            jc      MAIN_STOP               ; ano, bol nejaky stary udaj o tom, kde sme sa hybal
+                                                                               i, takze tu sme skoncili
+029E C3              511            clr     C
+029F E532            512            mov     A, HIGHEST
+02A1 B40002          513            cjne    A, #0, $+5              ; ak najvyssia poloha je prve poschodie
+02A4 800A            514            sjmp    MAIN_MOVE1              ; tak preskoc
+02A6 D220            515            setb    UP
+02A8 9530            516            subb    A, POSITION
+02AA 5004            517            jnc     $+6
+02AC D221            518            setb    DOWN
+02AE C220            519            clr     UP
+02B0                 520    MAIN_MOVE1:
+02B0 C3              521            clr     C
+02B1 E531            522            mov     A, LOWEST
+02B3 B40502          523            cjne    A, #5, $+5              ; ak najnizsia poloha je stvrte poschodie
+02B6 800A            524            sjmp    MAIN_MOVE2              ; tak preskoc
+02B8 D220            525            setb    UP
+02BA 9530            526            subb    A, POSITION
+02BC 5004            527            jnc     $+6
+02BE D221            528            setb    DOWN
+02C0 C220            529            clr     UP
+02C2                 530    MAIN_MOVE2:
+02C2 A220            531            mov     C, UP
+02C4 923A            532            mov     UPold, C
+02C6 A221            533            mov     C, DOWN
+02C8 923B            534            mov     DOWNold, C
+                     535                        
+02CA                 536    MAIN_STOP:
+                     537            ; teraz zistime, ci chceme na danom poschodi zastavit - toto sa odvija od stavu zast
+                                                                               avovacej clonky
+02CA A220            538            mov     C, UP                       ; toto ma zmysel len ak sa vytah hybe
+02CC 7221            539            orl     C, DOWN
+02CE 4003            540            jc      $+5                 
+02D0 0203CB          541            ljmp    MAIN_DOORCHK                ; ak sa nehybe, tak preskoc
+02D3 300905          542            jnb     MB1, $+8                    ; ak je zastavovacia clonka zapnuta
+02D6 D231            543            setb    MB1old
+02D8 0203CB          544            ljmp    MAIN_DOORCHK
+02DB 203103          545            jb      MB1old, $+6                 ; a nebola zapnuta pri minulom citani
+VYTAH/ORI.CTRL                                                                                               PAGE 11
+
+02DE 0203CB          546            ljmp    MAIN_DOORCHK
+02E1 C231            547            clr     MB1old                      ; tak zistime, ci v danom poschodi chceme zastav
+                                                                               it
+02E3 300F03          548            jnb     DPK, $+6                    ; najprv skontrolujeme podlahovy spinac DPK - kr
+                                                                               iticke zatazenie
+02E6 020391          549            ljmp    MAIN_POSSTOP                ; ak je zapnuty, tak v tomto poschodi stojime
+02E9 E530            550            mov     A, POSITION
+02EB B4000E          551            cjne    A, #0, MAIN_POSS2           ; sme na prvom?
+02EE A210            552            mov     C, PI1
+02F0 7241            553            orl     C, PKI1
+02F2 4003            554            jc      $+5
+02F4 0203CB          555            ljmp    MAIN_DOORCHK                ; tu nechceme stat?
+02F7 C23B            556            clr     DOWNold                     ; a uz sa dalej nebudeme hybat smerom dole
+02F9 020391          557            ljmp    MAIN_POSSTOP
+02FC                 558    MAIN_POSS2:
+02FC B40241          559            cjne    A, #2, MAIN_POSS3           ; sme na druhom?
+02FF 20211F          560            jb      DOWN, MAIN_POSS2D           ; ak vytah ide dole, tak skoc
+0302 E532            561            mov     A, HIGHEST
+0304 B40205          562            cjne    A, #2, $+8                  ; ak je toto poschodie najvyssie
+0307 C23A            563            clr     UPold                       ; uz dalej nepojdeme hore
+0309 020391          564            ljmp    MAIN_POSSTOP
+030C 300E06          565            jnb     DPZK, $+9                   ; ak nie je plne zatazenie kabiny, tak moze zast
+                                                                               avit
+030F 301203          566            jnb     PI2U, $+6                   ; ak nebol privolany zvonku, tak tiez moze zasta
+                                                                               vit
+0312 0203CB          567            ljmp    MAIN_DOORCHK                ; vytah je plne zatazeny a privolany zvonku, tak
+                                                                               ze nestojime!
+0315 A242            568            mov     C, PKI2                     ; zistime, ci sa neblizime k cielovej stanici zd
+                                                                               ola
+0317 7212            569            orl     C, PI2U
+0319 4003            570            jc      $+5
+031B 0203CB          571            ljmp    MAIN_DOORCHK                ; chceme tu stat?
+031E 020391          572            ljmp    MAIN_POSSTOP
+0321                 573    MAIN_POSS2D:
+0321 E531            574            mov     A, LOWEST                   ; je to momentalne najnizsie poschodie?
+0323 B40205          575            cjne    A, #2, $+8
+0326 C23B            576            clr     DOWNold                     ; uz dalej nepojdeme dole
+0328 020391          577            ljmp    MAIN_POSSTOP
+032B 300E06          578            jnb     DPZK, $+9                   ; ak nie je plne zatazenie kabiny, tak moze zast
+                                                                               avit
+032E 301103          579            jnb     PI2D, $+6                   ; ak nebol privolany zvonku, tak tiez moze zasta
+                                                                               vit
+0331 0203CB          580            ljmp    MAIN_DOORCHK                ; vytah je plne zatazeny a privolany zvonku, tak
+                                                                               ze nestojime!
+0334 A211            581            mov     C, PI2D                     ; vytah ide dole, tak zober udaje z tlacidla pre
+                                                                                smer dole
+0336 7242            582            orl     C, PKI2
+0338 4003            583            jc      $+5
+033A 0203CB          584            ljmp    MAIN_DOORCHK                ; chceme tu stat?
+033D 020391          585            ljmp    MAIN_POSSTOP
+0340                 586    MAIN_POSS3:
+0340 B40440          587            cjne    A, #4, MAIN_POSS4           ; sme na tretom?
+0343 20211F          588            jb      DOWN, MAIN_POSS3D           ; vytah ide dole?
+0346 E532            589            mov     A, HIGHEST                  ; je to momentalne najvyssie poschodie?
+0348 B40405          590            cjne    A, #4, $+8
+034B C23A            591            clr     UPold                       ; uz dalej nepojdeme hore
+034D 020391          592            ljmp    MAIN_POSSTOP
+0350 300E06          593            jnb     DPZK, $+9                   ; ak nie je plne zatazenie kabiny, tak moze zast
+VYTAH/ORI, CTRL                                                                                               PAGE 12
+
+                                                                               avit
+0353 301403          594            jnb     PI3U, $+6                   ; ak nebol privolany zvonku, tak tiez moze zasta
+                                                                               vit
+0356 0203CB          595            ljmp    MAIN_DOORCHK                ; vytah je plne zatazeny a privolany zvonku, tak
+                                                                               ze nestojime!
+0359 A214            596            mov     C, PI3U                     ; ano, tak zober udaje z tlacidla pre smer hore
+                                                                               
+035B 7243            597            orl     C, PKI3
+035D 4003            598            jc      $+5
+035F 0203CB          599            ljmp    MAIN_DOORCHK                ; chceme tu stat?
+0362 020391          600            ljmp    MAIN_POSSTOP
+0365                 601    MAIN_POSS3D:
+0365 E531            602            mov     A, LOWEST                   ; je to momentalne najnizsie poschodie?
+0367 B40405          603            cjne    A, #4, $+8
+036A C23B            604            clr     DOWNold                     ; uz dalej nepojdeme dole
+036C 020391          605            ljmp    MAIN_POSSTOP
+036F 300E06          606            jnb     DPZK, $+9                   ; ak nie je plne zatazenie kabiny, tak moze zast
+                                                                               avit
+0372 301303          607            jnb     PI3D, $+6                   ; ak nebol privolany zvonku, tak tiez moze zasta
+                                                                               vit
+0375 0203CB          608            ljmp    MAIN_DOORCHK                ; vytah je plne zatazeny a privolany zvonku, tak
+                                                                               ze nestojime!
+0378 A213            609            mov     C, PI3D                     ; vytah ide dole, tak zober udaje z tlacidla pre
+                                                                                smer dole
+037A 7243            610            orl     C, PKI3
+037C 4003            611            jc      $+5
+037E 0203CB          612            ljmp    MAIN_DOORCHK                ; chceme tu stat?
+0381 800E            613            sjmp    MAIN_POSSTOP
+0383                 614    MAIN_POSS4:
+0383 B40645          615            cjne    A, #6, MAIN_DOORCHK         ; sme na stvrtom?
+0386 A215            616            mov     C, PI4
+0388 7244            617            orl     C, PKI4
+038A 4003            618            jc      $+5
+038C 0203CB          619            ljmp    MAIN_DOORCHK                ; chceme tu stat?
+038F C23A            620            clr     UPold                       ; a uz sa dalej nebudeme hybat smerom hore
+                     621            
+0391                 622    MAIN_POSSTOP:                               ; stojime 
+0391 5324F4          623            anl     OUTPORTB, #not(bmUP or bmDOWN or bmSLOW)    ; zastav motor - UP=DOWN=SLOW=0
+                                                                               
+0394 D222            624            setb    FAST                        ; najblizsie sa zas budeme hybat rychlo
+0396 C22F            625            clr     LEDU                        ; zhasni indikacne diody
+0398 C22E            626            clr     LEDD
+                     627            
+039A C238            628            clr     CANGO                       ; nemozeme sa hybat; najblizsie sa bude dat az p
+                                                                               o uplynuti casovaca alebo po otvoreni a z
+                                                                               atvoreni dveri
+039C 753330          629            mov     STOPTIMER, #STOPDELAY       ; nastav casovac, po uplynuti ktoreho sa zas bud
+                                                                               eme moct hybat
+039F D28C            630            setb    TR0                         ; a spust ho
+                     631    
+03A1 E530            632            mov     A, POSITION                 ; nakoniec treba zrusit volbu v danom poschodi
+03A3 B40006          633            cjne    A, #0, MAIN_POSSTOP2        ; pozicia 0 - prve poschodie
+03A6 C219            634            clr     PKO1
+03A8 C228            635            clr     PO1
+03AA 801C            636            sjmp    MAIN_POSSTOPEND
+03AC                 637    MAIN_POSSTOP2:
+03AC B40208          638            cjne    A, #2, MAIN_POSSTOP4        ; pozicia 2 - druhe poschodie
+03AF C21A            639            clr     PKO2
+VYTAH/ORI                                                                                                    PAGE 13
+
+03B1 C229            640            clr     PO2D
+03B3 C22A            641            clr     PO2U
+03B5 8011            642            sjmp    MAIN_POSSTOPEND
+03B7                 643    MAIN_POSSTOP4:
+03B7 B40408          644            cjne    A, #4, MAIN_POSSTOP6        ; pozicia 4 - tretie poschodie
+03BA C21B            645            clr     PKO3
+03BC C22B            646            clr     PO3D
+03BE C22C            647            clr     PO3U
+03C0 8006            648            sjmp    MAIN_POSSTOPEND
+03C2                 649    MAIN_POSSTOP6:
+03C2 C21C            650            clr     PKO4                        ; pozicia 6 - stvrte poschodie
+03C4 C22D            651            clr     PO4
+03C6 C23A            652            clr     UPold                       ; hore uz nepojdeme
+03C8                 653    MAIN_POSSTOPEND:
+03C8 120471          654            lcall   WRITEPORTS                  ; toto je nutne na updatnutie informacie v privo
+                                                                               lavaci, inak ho automaticky znovu "stlaci
+                                                                               "
+                     655            
+03CB                 656    MAIN_DOORCHK:
+                     657            ; kontrola stavu dveri
+03CB 204515          658            jb      DOORCLSD, MAIN_DOORCLSD     ; ak dvere su zavrete, tak preskoc
+03CE 303924          659            jnb     DOORCLSDold, MAIN_DOOREND   ; ak aj v minulom kroku boli otvorene, tak presk
+                                                                               oc
+03D1 C239            660            clr     DOORCLSDold                 ; inak nastav flag, ze sa dvere otvorili
+03D3 C238            661            clr     CANGO                       ; v opacnom pripade nemozeme ist dalej
+03D5 A222            662            mov     C, FAST                     ; uloz udaje o poslednom pohybe
+03D7 923C            663            mov     FASTold, C
+03D9 A223            664            mov     C, SLOW
+03DB 923D            665            mov     SLOWold, C
+03DD C222            666            clr     FAST                        ; a zastav
+03DF C223            667            clr     SLOW
+03E1 8012            668            sjmp    MAIN_DOOREND
+03E3                 669    MAIN_DOORCLSD:
+03E3 20390F          670            jb      DOORCLSDold, MAIN_DOOREND   ; ak boli zavrete aj v minulom kroku tak preskoc
+                                                                               
+03E6 D239            671            setb    DOORCLSDold                 ; inak nastav flag
+03E8 200F02          672            jb      DPK, $+5                    ; ak je vytah kriticky zatazeny, tak nepovolime 
+                                                                               opatovne rozbehnutie
+03EB D238            673            setb    CANGO                       ; nie je kriticky zatazeny => mozeme sa znovu hy
+                                                                               bat
+03ED A23C            674            mov     C, FASTold                  ; a obnov udaj pre rychlost pohybu
+03EF 9222            675            mov     FAST, C
+03F1 A23D            676            mov     C, SLOWold
+03F3 9223            677            mov     SLOW, C
+03F5                 678    MAIN_DOOREND:
+                     679    
+                     680            ; ak sa vytah hybe, alebo je zatazeny, tak rozsviet svetlo
+03F5 C218            681            clr     KS
+03F7 A20D            682            mov     C, DP
+03F9 720E            683            orl     C, DPZK
+03FB 720F            684            orl     C, DPK
+03FD 7220            685            orl     C, UP
+03FF 7221            686            orl     C, DOWN
+0401 5015            687            jnc     MAIN_LIGHTOFF           ; ak sa vytah nehybe a je prazdny tak preskoc
+0403 E524            688            mov     A, OUTPORTB
+0405 54F0            689            anl     A, #0f0h                ; zober len data o polohe
+0407 B40004          690            cjne    A, #0, $+7              ; ak nemame udaj o polohe,
+040A E534            691            mov     A, OUTPORTBold          ;   tak zober 
+VYTAH/ORI([CTRL                                                                                               PAGE 14
+
+040C 4224            692            orl     OUTPORTB, A             ;   zalozny udaj
+040E 852434          693            mov     OUTPORTBold, OUTPORTB   ; kedze sa hybeme, tak odzalohuj poschodie, 
+0411 5334F0          694            anl     OUTPORTBold, #0f0h      ;   na ktorom momentalne sme
+0414 D218            695            setb    KS                      ; a rozsviet svetlo
+0416 8003            696            sjmp    MAIN_DIRLEDS
+                     697            
+0418                 698    MAIN_LIGHTOFF:                          ; v tomto pripade nebudeme svietit ani ukazovat polo
+                                                                               hu vytahu
+0418 53240F          699            anl     OUTPORTB, #0fh          ; a vynuluj informaciu vo vystupnom registri
+                     700            
+041B                 701    MAIN_DIRLEDS:
+                     702            ; a este zistime, ci sa vytah hybe a podla toho nastavime indikator smeru pohybu
+041B A220            703            mov     C, UP
+041D 7221            704            orl     C, DOWN
+041F 500F            705            jnc     LEDUD_END
+0421 A222            706            mov     C, FAST
+0423 7223            707            orl     C, SLOW
+0425 5009            708            jnc     LEDUD_END
+0427 202004          709            jb      UP, $+7
+042A D22E            710            setb    LEDD
+042C 8002            711            sjmp    LEDUD_END
+042E D22F            712            setb    LEDU
+0430                 713    LEDUD_END:
+                     714            
+0430 020105          715            ljmp    MAIN            ; nekonecna slucka
+                     716    
+                     717    
+                     718    ; rutina time delay 1 ms pre oscilator s frekvenciou 11.0592 MHz
+                     719    ; 1 instrukcia 2 takty? => 11.0592/2 = pocet instrukcii potrebnych na 1 sekundu
+                     720    ; 11.0592MHz/2000 = zdrzanie 1 ms
+0433                 721    TIME1MS:
+0433 7BFF            722            mov     R3,#0FFh        ; prva cast slucky pre time delay
+0435 DBFE            723    TIME1:  djnz    R3,TIME1        ; prvy cyklus
+0437 00              724            nop                     ; jeden prazdny takt
+0438 7BCB            725            mov     R3,#0CBh        ; druha cast slucky pre time delay
+043A DBFE            726    TIME2:  djnz    R3,TIME2        ; druhy cyklus
+043C 22              727            ret                     ; koniec
+                     728    
+                     729    
+                     730    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     731    ; READPORTS
+                     732    ; precita nove hodnoty na portoch
+                     733    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+043D                 734    READPORTS:
+043D 75A080          735            mov     p2, #i8255INA       ; citaj data z portu A
+0440 75803F          736            mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
+0443 C2B7            737            clr     RDNOT
+0445 00              738            nop
+0446 00              739            nop
+0447 00              740            nop
+0448 00              741            nop
+0449 858028          742            mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
+044C D2B7            743            setb    RDNOT
+                     744            
+044E 75A081          745            mov     p2, #i8255INB       ; citaj data z portu B
+0451 7580FE          746            mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
+                                                                               
+0454 C2B7            747            clr     RDNOT
+VYTAH/ORI$CTRL                                                                                               PAGE 15
+
+0456 00              748            nop
+0457 00              749            nop
+0458 00              750            nop
+0459 00              751            nop
+045A 858021          752            mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
+045D D2B7            753            setb    RDNOT
+                     754    
+045F 75A082          755            mov     p2, #i8255INC       ; citaj data z portu C
+0462 75803F          756            mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
+0465 C2B7            757            clr     RDNOT
+0467 00              758            nop
+0468 00              759            nop
+0469 00              760            nop
+046A 00              761            nop
+046B 858022          762            mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
+046E D2B7            763            setb    RDNOT
+0470 22              764            ret
+                     765            
+                     766    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     767    ; WRITEPORTS
+                     768    ; spravi zalohu vystupnych registrov a posle data von
+                     769    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+0471                 770    WRITEPORTS:
+0471 852380          771            mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
+0474 75A0C0          772            mov     p2, #i8255OUTA
+0477 C2B6            773            clr     WRNOT
+0479 00              774            nop
+047A 00              775            nop
+047B 00              776            nop
+047C 00              777            nop
+047D D2B6            778            setb    WRNOT
+                     779            
+047F 852480          780            mov     p0, OUTPORTB        ; potom port B
+0482 75A0C1          781            mov     p2, #i8255OUTB
+0485 C2B6            782            clr     WRNOT
+0487 00              783            nop
+0488 00              784            nop
+0489 00              785            nop
+048A 00              786            nop
+048B D2B6            787            setb    WRNOT
+                     788    
+048D 852580          789            mov     p0, OUTPORTC        ; a nakoniec port C
+0490 75A0C2          790            mov     p2, #i8255OUTC
+0493 C2B6            791            clr     WRNOT
+0495 00              792            nop
+0496 00              793            nop
+0497 00              794            nop
+0498 00              795            nop
+0499 D2B6            796            setb    WRNOT
+049B 22              797            ret
+                     798    
+                     799    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     800    ; BYTEOUT
+                     801    ; rutina pre vyslanie byte po seriovej linke
+                     802    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+049C                 803    BYTEOUT:
+049C F599            804            mov     SBUF, A         ; a zacne sa vysielat novy byte
+049E 3099FD          805            jnb     TI, $           ; pockame, kym sa neodvysiela
+VYTAH/ORI pCTRL                                                                                               PAGE 16
+
+04A1 C299            806            clr     TI              ; uz je odoslany, tak mozeme priznak zmazat
+04A3 22              807            ret
+                     808    
+                     809    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     810    ; BYTEIN
+                     811    ; rutina pre prijem byte zo seriovej linky
+                     812    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+04A4                 813    BYTEIN: 
+04A4 3098FD          814            jnb     RI, $           ; caka sa pokym nepride cely udaj
+04A7 E599            815            mov     A, SBUF         ; udaj sa presunie do A
+04A9 C298            816            clr     RI              ; a zhodi sa flag RI
+04AB 22              817            ret
+                     818    
+                     819    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     820    ; DISPSTR
+                     821    ; posle na seriovu linku retazec na adrese DPTR
+                     822    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+04AC                 823    DISPSTR:
+04AC E4              824            clr     A
+04AD 93              825            movc    A, @A+DPTR
+04AE 600A            826            jz      DSPS_END
+04B0 F599            827            mov     SBUF, A
+04B2 3099FD          828            jnb     TI, $
+04B5 C299            829            clr     TI
+04B7 A3              830            inc     DPTR
+04B8 80F2            831            sjmp    DISPSTR
+04BA                 832    DSPS_END:
+04BA 22              833            ret
+                     834    
+                     835    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     836    ; STOP_RESET
+                     837    ; tato rutina reinicializuje system po stlaceni tlacitka STOP
+                     838    ; vola sa z obsluhy prerusenia INT0 a z obsluhy serioveho portu
+                     839    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+04BB                 840    STOP_RESET:
+04BB 752800          841            mov     INPORTA, #0             ; vynuluj vstupne registre
+04BE 752100          842            mov     INPORTB, #0
+04C1 752200          843            mov     INPORTC, #0
+                     844    
+04C4 752300          845            mov     OUTPORTA, #0            ; vynuluj
+04C7 752400          846            mov     OUTPORTB, #0            ; data 
+04CA 752500          847            mov     OUTPORTC, #0            ; vo vystupnych registroch
+04CD C23A            848            clr     UPold
+04CF C23B            849            clr     DOWNold
+04D1 D222            850            setb    FAST
+04D3 C223            851            clr     SLOW
+                     852    
+04D5 C28C            853            clr     TR0                     ; zastav casovac
+04D7 D238            854            setb    CANGO
+04D9 300F07          855            jnb     DPK, STOP_CANGO         ; ak je hned na zaciatku kriticky zatazena kabina, t
+                                                                               ak budeme stat
+04DC C238            856            clr     CANGO                   ; nemozeme sa hybat; najblizsie sa bude dat az po up
+                                                                               lynuti casovaca alebo po otvoreni a zatvo
+                                                                               reni dveri
+04DE 753330          857            mov     STOPTIMER, #STOPDELAY   ; nastav casovac, po uplynuti ktoreho sa zas budeme 
+                                                                               moct hybat
+04E1 D28C            858            setb    TR0                     ; a spust ho
+04E3                 859    STOP_CANGO:
+VYTAH/ORI                                                                                                     PAGE 17
+
+                     860    
+04E3 120471          861            lcall   WRITEPORTS              ; zapis novu informaciu
+04E6 12043D          862            lcall   READPORTS               ; precitaj hned nove data, aby sme mali aktualne inf
+                                                                               o
+                     863            
+04E9 900546          864            mov     DPTR, #STR_STOP
+04EC 1204AC          865            lcall   DISPSTR                 ; a daj echo o tom, ze stlacenie tlacidla STOP bolo 
+                                                                               osetrene
+04EF 22              866            ret
+                     867    
+                     868    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     869    ; OBSLUHY PRERUSENI                                                           ;
+                     870    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     871    
+                     872    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     873    ; Obsluha prerusenia casovaca T0
+                     874    ; Zabezpecuje obnovenie signalu CANGO po vyprsani casoveho limitu
+                     875    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+04F0                 876    INT_TIMER0:
+04F0 C2AF            877            clr     EA
+                     878    ;        clr     ET0
+                     879    ;        clr     EX0
+                     880    ;        clr     ES
+04F2 C0E0            881            push    ACC
+04F4 C0D0            882            push    PSW
+04F6 C0A8            883            push    IE
+                     884            
+04F8 303804          885            jnb     CANGO, INT_TIMER0_MAIN      ; ak stale nejaka ina udalost nepovolila pohyb v
+                                                                               ytahu, tak pokracuj v cakani
+04FB C28C            886            clr     TR0                         ; ak uz je pohyb povoleny, tak zastav citac
+04FD 8017            887            sjmp    INT_TIMER0_END              ; a koniec
+                     888            
+04FF                 889    INT_TIMER0_MAIN:
+04FF 1533            890            dec     STOPTIMER                   ; dekrementuj hodnotu citaca
+0501 E533            891            mov     A, STOPTIMER
+0503 B40010          892            cjne    A, #0, INT_TIMER0_END       ; pozri, ci nie je nula
+0506 300F05          893            jnb     DPK, INT_TIMER0_STOP        ; ak nie je zapnute kriticke zatazenie, tak moze
+                                                                               me obnovit pohyb
+0509 753320          894            mov     STOPTIMER, #STOPDPKDELAY    ; ak je DPK zapnuty, tak obnov pocitadlo casovac
+                                                                               a
+050C 8008            895            sjmp    INT_TIMER0_END
+                     896                    
+050E                 897    INT_TIMER0_STOP:
+050E C28C            898            clr     TR0                         ; zastav casovac
+0510 D222            899            setb    FAST                        ; po vyprsani casovaca urcite pojdeme rychlo
+0512 C223            900            clr     SLOW
+0514 D238            901            setb    CANGO                       ; a povol znovu pohyb
+                     902    
+0516                 903    INT_TIMER0_END:        
+0516 D0A8            904            pop     IE
+0518 D0D0            905            pop     PSW
+051A D0E0            906            pop     ACC
+                     907    ;        setb    ET0
+                     908    ;        setb    EX0
+                     909    ;        setb    ES
+051C D2AF            910            setb    EA
+051E 32              911                    reti
+                     912    
+VYTAH/ORI                                                                                                     PAGE 18
+
+                     913    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                     914    
+051F 0D0A5269        915    STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
+0523 61646961   
+0527 63692073   
+052B 79737465   
+052F 6D206A65   
+0533 20696E69   
+0537 6369616C   
+053B 697A6F76   
+053F 616E792E   
+0543 0D0A00     
+0546 52696164        916    STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 
+                                                                               00h
+054A 69616369   
+054E 20737973   
+0552 74656D20   
+0556 6A652072   
+055A 65696E69   
+055E 6369616C   
+0562 697A6F76   
+0566 616E7920   
+056A 706F2073   
+056E 746C6163   
+0572 656E6920   
+0576 746C6163   
+057A 69646C61   
+057E 2053544F   
+0582 502E0D0A   
+0586 00         
+0587 4B616C69        917    STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
+058B 62726163   
+058F 69612076   
+0593 79746168   
+0597 75206A65   
+059B 20756B6F   
+059F 6E63656E   
+05A3 612E0D0A   
+05A7 00         
+                     918    
+----                 919            DSEG
+0040                 920            org     40h
+0040                 921    STACK:  DS      10h
+                     922    
+                     923    end
+                     924    
+                     925    
+
+VERSION 1.2h ASSEMBLY COMPLETE, 0 ERRORS FOUND
+VYTAH/ORI                                                                                                     PAGE 19
+
+ACC. . . . . . . . . . . . . . .  D ADDR  00E0H  PREDEFINED  
+BMDOORCLSD . . . . . . . . . . .    NUMB  0020H  
+BMDOWN . . . . . . . . . . . . .    NUMB  0002H  
+BMDPI. . . . . . . . . . . . . .    NUMB  0020H  
+BMDPKI . . . . . . . . . . . . .    NUMB  0080H  
+BMDPZKI. . . . . . . . . . . . .    NUMB  0040H  
+BMFAST . . . . . . . . . . . . .    NUMB  0004H  NOT USED  
+BMFLED1. . . . . . . . . . . . .    NUMB  0010H  
+BMFLED2. . . . . . . . . . . . .    NUMB  0020H  
+BMFLED3. . . . . . . . . . . . .    NUMB  0040H  
+BMFLED4. . . . . . . . . . . . .    NUMB  0080H  
+BMKS . . . . . . . . . . . . . .    NUMB  0001H  NOT USED  
+BMLEDD . . . . . . . . . . . . .    NUMB  0040H  
+BMLEDU . . . . . . . . . . . . .    NUMB  0080H  
+BMMB1I . . . . . . . . . . . . .    NUMB  0002H  
+BMMB2I . . . . . . . . . . . . .    NUMB  0004H  
+BMPI1. . . . . . . . . . . . . .    NUMB  0001H  
+BMPI2D . . . . . . . . . . . . .    NUMB  0002H  
+BMPI2U . . . . . . . . . . . . .    NUMB  0004H  
+BMPI3D . . . . . . . . . . . . .    NUMB  0008H  
+BMPI3U . . . . . . . . . . . . .    NUMB  0010H  
+BMPI4. . . . . . . . . . . . . .    NUMB  0020H  
+BMPKI1 . . . . . . . . . . . . .    NUMB  0002H  
+BMPKI2 . . . . . . . . . . . . .    NUMB  0004H  
+BMPKI3 . . . . . . . . . . . . .    NUMB  0008H  
+BMPKI4 . . . . . . . . . . . . .    NUMB  0010H  
+BMPKO1 . . . . . . . . . . . . .    NUMB  0002H  
+BMPKO2 . . . . . . . . . . . . .    NUMB  0004H  
+BMPKO3 . . . . . . . . . . . . .    NUMB  0008H  
+BMPKO4 . . . . . . . . . . . . .    NUMB  0010H  
+BMPO1. . . . . . . . . . . . . .    NUMB  0001H  
+BMPO2D . . . . . . . . . . . . .    NUMB  0002H  
+BMPO2U . . . . . . . . . . . . .    NUMB  0004H  
+BMPO3D . . . . . . . . . . . . .    NUMB  0008H  
+BMPO3U . . . . . . . . . . . . .    NUMB  0010H  
+BMPO4. . . . . . . . . . . . . .    NUMB  0020H  
+BMSKRHD. . . . . . . . . . . . .    NUMB  0010H  
+BMSKRHI. . . . . . . . . . . . .    NUMB  0008H  
+BMSLOW . . . . . . . . . . . . .    NUMB  0008H  
+BMSTOP . . . . . . . . . . . . .    NUMB  0001H  
+BMUP . . . . . . . . . . . . . .    NUMB  0001H  
+BYTEIN . . . . . . . . . . . . .  C ADDR  04A4H  NOT USED  
+BYTEOUT. . . . . . . . . . . . .  C ADDR  049CH  NOT USED  
+CALIBDONE. . . . . . . . . . . .  C ADDR  00FCH  
+CALIBEND . . . . . . . . . . . .  C ADDR  00CEH  
+CALIBLOOP. . . . . . . . . . . .  C ADDR  00C5H  
+CALIB_DPK. . . . . . . . . . . .  C ADDR  00F2H  
+CANGO. . . . . . . . . . . . . .  B ADDR  0038H  
+CTRLREG. . . . . . . . . . . . .  D ADDR  0027H  
+DISPSTR. . . . . . . . . . . . .  C ADDR  04ACH  
+DOORCLSD . . . . . . . . . . . .  B ADDR  0045H  
+DOORCLSDOLD. . . . . . . . . . .  B ADDR  0039H  
+DOWN . . . . . . . . . . . . . .  B ADDR  0021H  
+DOWNOLD. . . . . . . . . . . . .  B ADDR  003BH  
+DP . . . . . . . . . . . . . . .  B ADDR  000DH  
+DPK. . . . . . . . . . . . . . .  B ADDR  000FH  
+DPZK . . . . . . . . . . . . . .  B ADDR  000EH  
+DSPS_END . . . . . . . . . . . .  C ADDR  04BAH  
+VYTAH/ORI                                                                                                     PAGE 20
+
+EA . . . . . . . . . . . . . . .  B ADDR  00AFH  PREDEFINED  
+ET0. . . . . . . . . . . . . . .  B ADDR  00A9H  PREDEFINED  
+FAST . . . . . . . . . . . . . .  B ADDR  0022H  
+FASTOLD. . . . . . . . . . . . .  B ADDR  003CH  
+FLED1. . . . . . . . . . . . . .  B ADDR  0024H  
+FLED2. . . . . . . . . . . . . .  B ADDR  0025H  
+FLED3. . . . . . . . . . . . . .  B ADDR  0026H  
+FLED4. . . . . . . . . . . . . .  B ADDR  0027H  
+HIGHEST. . . . . . . . . . . . .  D ADDR  0032H  
+I8255INA . . . . . . . . . . . .    NUMB  0080H  
+I8255INB . . . . . . . . . . . .    NUMB  0081H  
+I8255INC . . . . . . . . . . . .    NUMB  0082H  
+I8255INCW. . . . . . . . . . . .    NUMB  0083H  
+I8255OUTA. . . . . . . . . . . .    NUMB  00C0H  
+I8255OUTB. . . . . . . . . . . .    NUMB  00C1H  
+I8255OUTC. . . . . . . . . . . .    NUMB  00C2H  
+I8255OUTCW . . . . . . . . . . .    NUMB  00C3H  
+IE . . . . . . . . . . . . . . .  D ADDR  00A8H  PREDEFINED  
+INPORTA. . . . . . . . . . . . .  D ADDR  0028H  
+INPORTB. . . . . . . . . . . . .  D ADDR  0021H  
+INPORTBOLD . . . . . . . . . . .  D ADDR  0026H  
+INPORTC. . . . . . . . . . . . .  D ADDR  0022H  
+INT_TIMER0 . . . . . . . . . . .  C ADDR  04F0H  
+INT_TIMER0_END . . . . . . . . .  C ADDR  0516H  
+INT_TIMER0_MAIN. . . . . . . . .  C ADDR  04FFH  
+INT_TIMER0_STOP. . . . . . . . .  C ADDR  050EH  
+KS . . . . . . . . . . . . . . .  B ADDR  0018H  
+LEDD . . . . . . . . . . . . . .  B ADDR  002EH  
+LEDU . . . . . . . . . . . . . .  B ADDR  002FH  
+LEDUD_END. . . . . . . . . . . .  C ADDR  0430H  
+LOWEST . . . . . . . . . . . . .  D ADDR  0031H  
+MAIN . . . . . . . . . . . . . .  C ADDR  0105H  
+MAIN_DIRLEDS . . . . . . . . . .  C ADDR  041BH  
+MAIN_DOORCHK . . . . . . . . . .  C ADDR  03CBH  
+MAIN_DOORCLSD. . . . . . . . . .  C ADDR  03E3H  
+MAIN_DOOREND . . . . . . . . . .  C ADDR  03F5H  
+MAIN_LIGHTOFF. . . . . . . . . .  C ADDR  0418H  
+MAIN_MOVE. . . . . . . . . . . .  C ADDR  028FH  NOT USED  
+MAIN_MOVE1 . . . . . . . . . . .  C ADDR  02B0H  
+MAIN_MOVE2 . . . . . . . . . . .  C ADDR  02C2H  
+MAIN_POS0. . . . . . . . . . . .  C ADDR  01ACH  
+MAIN_POS1. . . . . . . . . . . .  C ADDR  01C3H  
+MAIN_POS2. . . . . . . . . . . .  C ADDR  01CDH  
+MAIN_POS2D . . . . . . . . . . .  C ADDR  01FBH  
+MAIN_POS2DDPZK . . . . . . . . .  C ADDR  0206H  
+MAIN_POS2DDPZKEND. . . . . . . .  C ADDR  0212H  
+MAIN_POS2UDPZK . . . . . . . . .  C ADDR  01E0H  
+MAIN_POS2UDPZKEND. . . . . . . .  C ADDR  01ECH  
+MAIN_POS3. . . . . . . . . . . .  C ADDR  0221H  
+MAIN_POS4. . . . . . . . . . . .  C ADDR  022BH  
+MAIN_POS4D . . . . . . . . . . .  C ADDR  0259H  
+MAIN_POS4DDPZK . . . . . . . . .  C ADDR  0264H  
+MAIN_POS4DDPZKEND. . . . . . . .  C ADDR  0270H  
+MAIN_POS4UDPZK . . . . . . . . .  C ADDR  023EH  
+MAIN_POS4UDPZKEND. . . . . . . .  C ADDR  024AH  
+MAIN_POS5. . . . . . . . . . . .  C ADDR  027FH  
+MAIN_POS6. . . . . . . . . . . .  C ADDR  0289H  
+MAIN_POSEND. . . . . . . . . . .  C ADDR  028FH  
+VYTAH/ORI                                                                                                     PAGE 21
+
+MAIN_POSITION. . . . . . . . . .  C ADDR  018EH  
+MAIN_POSS2 . . . . . . . . . . .  C ADDR  02FCH  
+MAIN_POSS2D. . . . . . . . . . .  C ADDR  0321H  
+MAIN_POSS3 . . . . . . . . . . .  C ADDR  0340H  
+MAIN_POSS3D. . . . . . . . . . .  C ADDR  0365H  
+MAIN_POSS4 . . . . . . . . . . .  C ADDR  0383H  
+MAIN_POSSTOP . . . . . . . . . .  C ADDR  0391H  
+MAIN_POSSTOP2. . . . . . . . . .  C ADDR  03ACH  
+MAIN_POSSTOP4. . . . . . . . . .  C ADDR  03B7H  
+MAIN_POSSTOP6. . . . . . . . . .  C ADDR  03C2H  
+MAIN_POSSTOPEND. . . . . . . . .  C ADDR  03C8H  
+MAIN_STOP. . . . . . . . . . . .  C ADDR  02CAH  
+MAIN_STOPBNEND . . . . . . . . .  C ADDR  0123H  
+MB1. . . . . . . . . . . . . . .  B ADDR  0009H  
+MB1OLD . . . . . . . . . . . . .  B ADDR  0031H  
+MB2. . . . . . . . . . . . . . .  B ADDR  000AH  
+MB2OLD . . . . . . . . . . . . .  B ADDR  0032H  
+OUTPORTA . . . . . . . . . . . .  D ADDR  0023H  
+OUTPORTB . . . . . . . . . . . .  D ADDR  0024H  
+OUTPORTBOLD. . . . . . . . . . .  D ADDR  0034H  
+OUTPORTC . . . . . . . . . . . .  D ADDR  0025H  
+P0 . . . . . . . . . . . . . . .  D ADDR  0080H  PREDEFINED  
+P2 . . . . . . . . . . . . . . .  D ADDR  00A0H  PREDEFINED  
+PCON . . . . . . . . . . . . . .  D ADDR  0087H  PREDEFINED  
+PI1. . . . . . . . . . . . . . .  B ADDR  0010H  
+PI2D . . . . . . . . . . . . . .  B ADDR  0011H  
+PI2U . . . . . . . . . . . . . .  B ADDR  0012H  
+PI3D . . . . . . . . . . . . . .  B ADDR  0013H  
+PI3U . . . . . . . . . . . . . .  B ADDR  0014H  
+PI4. . . . . . . . . . . . . . .  B ADDR  0015H  
+PKI1 . . . . . . . . . . . . . .  B ADDR  0041H  
+PKI2 . . . . . . . . . . . . . .  B ADDR  0042H  
+PKI3 . . . . . . . . . . . . . .  B ADDR  0043H  
+PKI4 . . . . . . . . . . . . . .  B ADDR  0044H  
+PKO1 . . . . . . . . . . . . . .  B ADDR  0019H  
+PKO2 . . . . . . . . . . . . . .  B ADDR  001AH  
+PKO3 . . . . . . . . . . . . . .  B ADDR  001BH  
+PKO4 . . . . . . . . . . . . . .  B ADDR  001CH  
+PO1. . . . . . . . . . . . . . .  B ADDR  0028H  
+PO2D . . . . . . . . . . . . . .  B ADDR  0029H  
+PO2U . . . . . . . . . . . . . .  B ADDR  002AH  
+PO3D . . . . . . . . . . . . . .  B ADDR  002BH  
+PO3U . . . . . . . . . . . . . .  B ADDR  002CH  
+PO4. . . . . . . . . . . . . . .  B ADDR  002DH  
+POSITION . . . . . . . . . . . .  D ADDR  0030H  
+PSW. . . . . . . . . . . . . . .  D ADDR  00D0H  PREDEFINED  
+RDNOT. . . . . . . . . . . . . .  B ADDR  00B7H  
+READPORTS. . . . . . . . . . . .  C ADDR  043DH  
+RI . . . . . . . . . . . . . . .  B ADDR  0098H  PREDEFINED  
+SBUF . . . . . . . . . . . . . .  D ADDR  0099H  PREDEFINED  
+SCON . . . . . . . . . . . . . .  D ADDR  0098H  PREDEFINED  
+SKRD . . . . . . . . . . . . . .  B ADDR  000CH  
+SKRDOLD. . . . . . . . . . . . .  B ADDR  0034H  NOT USED  
+SKRH . . . . . . . . . . . . . .  B ADDR  000BH  NOT USED  
+SKRHOLD. . . . . . . . . . . . .  B ADDR  0033H  NOT USED  
+SLOW . . . . . . . . . . . . . .  B ADDR  0023H  
+SLOWOLD. . . . . . . . . . . . .  B ADDR  003DH  
+SP . . . . . . . . . . . . . . .  D ADDR  0081H  PREDEFINED  
+VYTAH/ORI                                                                                                     PAGE 22
+
+STACK. . . . . . . . . . . . . .  D ADDR  0040H  
+START. . . . . . . . . . . . . .  C ADDR  0033H  
+STOPDELAY. . . . . . . . . . . .    NUMB  0030H  
+STOPDPKDELAY . . . . . . . . . .    NUMB  0020H  
+STOPNOT. . . . . . . . . . . . .  B ADDR  0040H  
+STOPTIMER. . . . . . . . . . . .  D ADDR  0033H  
+STOP_CANGO . . . . . . . . . . .  C ADDR  04E3H  
+STOP_RESET . . . . . . . . . . .  C ADDR  04BBH  
+STR_CALIB. . . . . . . . . . . .  C ADDR  0587H  
+STR_INIT . . . . . . . . . . . .  C ADDR  051FH  
+STR_STOP . . . . . . . . . . . .  C ADDR  0546H  
+TCON . . . . . . . . . . . . . .  D ADDR  0088H  PREDEFINED  
+TH0. . . . . . . . . . . . . . .  D ADDR  008CH  PREDEFINED  
+TH1. . . . . . . . . . . . . . .  D ADDR  008DH  PREDEFINED  
+TI . . . . . . . . . . . . . . .  B ADDR  0099H  PREDEFINED  
+TIME1. . . . . . . . . . . . . .  C ADDR  0435H  
+TIME1MS. . . . . . . . . . . . .  C ADDR  0433H  
+TIME2. . . . . . . . . . . . . .  C ADDR  043AH  
+TIMERCONST . . . . . . . . . . .    NUMB  00FAH  
+TL0. . . . . . . . . . . . . . .  D ADDR  008AH  PREDEFINED  
+TL1. . . . . . . . . . . . . . .  D ADDR  008BH  PREDEFINED  
+TMOD . . . . . . . . . . . . . .  D ADDR  0089H  PREDEFINED  
+TR0. . . . . . . . . . . . . . .  B ADDR  008CH  PREDEFINED  
+TR1. . . . . . . . . . . . . . .  B ADDR  008EH  PREDEFINED  
+UP . . . . . . . . . . . . . . .  B ADDR  0020H  
+UPOLD. . . . . . . . . . . . . .  B ADDR  003AH  
+WRITEPORTS . . . . . . . . . . .  C ADDR  0471H  
+WRNOT. . . . . . . . . . . . . .  B ADDR  00B6H  
