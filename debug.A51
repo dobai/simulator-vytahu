@@ -1,3 +1,10 @@
+; TODO: 
+; Dorob nulovanie volieb v sachte 
+; Dorob 3UP a 2 DOWN (tam kde stojis vzdy)
+; Asi by bolo dobre premenovat PI1, PO1 a PI4 PO4 na alternativy s koncovkami U a D
+; Poriadne otestuj !!! 
+
+
 $MOD51
 $DEBUG
 
@@ -39,6 +46,16 @@ ZAKMITC MACRO   TYPCLONKY
         lcall   READPORTS       ; Uz sme z tej clonky prec?
         jnb     TYPCLONKY, $-3  ; 
         lcall   TIME10MS        ; pockame 10 ms  kym sa hodnota ustali (ze sme z nej naozaj zliezli)
+ENDM
+
+ZASTAV  MACRO  C_POSCH, SMER
+                                        ; Chceme tu zastavit? - je toto poschodie zvolene? 
+        clr     C                       ; | Idem robit cachre-machre s Carry bitom
+        orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine?
+        orl     C, PI&C_POSCH&SMER      ; | Mam v tomto smere stlacene tlacidlo v sachte?
+        anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim) 
+        orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
+        addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
 ENDM
 
 POLOHA_LED  MACRO  POLOHA
@@ -211,8 +228,7 @@ UP1_MB1:
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
-        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-        anl     A, #00000100b ;-;
+        ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
         jz      UP2           ;-; Ak nie, chod do stavu UP2
         clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj) 
@@ -297,8 +313,7 @@ UP2_MB1:
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
-        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-        anl     A, #00001000b ;-;
+        ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
         jnz     U2_MB1C       ;-; Ak nie, chod do stavu UP3
         ljmp    UP3             ; |
 U2_MB1C:clr     UP              ; zastav motor
@@ -459,8 +474,7 @@ DOWN3_MB1:
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
-        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-        anl     A, #00000100b ;-;
+        ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
         jnz     D3_MB1C         ; Ak nie, chod do stavu DOWN2
         ljmp    DOWN2         ;-; |
 D3_MB1C:clr     DOWN            ; zastav motor
@@ -518,8 +532,7 @@ DOWN4_MB1:
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
-        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
-        anl     A, #00001000b ;-;
+        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
         jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
         ljmp    DOWN3         ;-; |
 D4_MB1C:clr     DOWN            ; zastav motor
@@ -668,6 +681,10 @@ READPORTS:
         mov     A, INPORTA
         anl     A, #00011110b
         orl     OUTPORTA, A
+        call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
+        mov     A, INPORTC
+        anl     A, #00111111b
+        orl     OUTPORTC, A
         call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
         
         ret
