@@ -190,16 +190,7 @@ UP1_MB2:
         
         lcall   READPORTS       ; Uz sme z tej clonky prec?
         jnb     MB2, $-3        ; 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
-        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME10MS        ; pockame 10 ms 
         
         mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
         anl     A, #00000100b ;-;
@@ -288,6 +279,11 @@ UP2_MB2:
         jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
+        
+        lcall   READPORTS       ; Uz sme z tej clonky prec?
+        jnb     MB2, $-3        ; 
+        lcall   TIME10MS        ; pockame 10 ms 
+        
         mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
         anl     A, #00001000b ;-;
         jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
@@ -424,6 +420,11 @@ UP3_MB2:
         jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
+        
+        lcall   READPORTS       ; Uz sme z tej clonky prec?
+        jnb     MB2, $-3        ; 
+        lcall   TIME10MS        ; pockame 10 ms 
+        
         mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
         anl     A, #00010000b ;-;
         jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
@@ -597,12 +598,20 @@ ENDPROG:
 ; rutina time delay 1 ms pre oscilator s frekvenciou 11.0592 MHz
 ; 1 instrukcia 2 takty? => 11.0592/2 = pocet instrukcii potrebnych na 1 sekundu
 ; 11.0592MHz/2000 = zdrzanie 1 ms
-TIME1MS:
-        mov     R3,#0FFh        ; prva cast slucky pre time delay
-TIME1:  djnz    R3,TIME1        ; prvy cyklus
-        nop                     ; jeden prazdny takt
-        mov     R3,#0CBh        ; druha cast slucky pre time delay
-TIME2:  djnz    R3,TIME2        ; druhy cyklus
+TIME10MS:
+        mov     R1,#063h        ; 2
+                                ; *** 100x
+TIME0:  mov     R2,#0FFh        ; 2 
+TIME1:  djnz    R2,TIME1        ; 256*2   
+        mov     R2,#0FFh        ; 2       
+TIME2:  djnz    R2,TIME2        ; 256*2 
+        mov     R2,#024h        ; 2       
+TIME3:  djnz    R2,TIME3        ; 36*2
+        nop                     ; 1
+        djnz    R1,TIME0        ; 2
+                                ; ***
+        mov     R1,#02Ah        ; 2 
+TIME4:  djnz    R1,TIME4        ; 43*2  
         ret                     ; koniec
         
         
