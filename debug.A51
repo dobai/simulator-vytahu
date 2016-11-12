@@ -187,6 +187,20 @@ UP1_MB2:
         jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;   
+        
+        lcall   READPORTS       ; Uz sme z tej clonky prec?
+        jnb     MB2, $-3        ; 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        lcall   TIME1MS        ; pockame 10? ms 
+        
         mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
         anl     A, #00000100b ;-;
         jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1
@@ -197,7 +211,7 @@ UP1_MB2:
 UP1_MB1:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-;        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00000100b ;-;
@@ -579,6 +593,17 @@ ENDPROG:
         call    WRITEPORTS                ; zapis novu informaciu
         _BP_
         ret
+        
+; rutina time delay 1 ms pre oscilator s frekvenciou 11.0592 MHz
+; 1 instrukcia 2 takty? => 11.0592/2 = pocet instrukcii potrebnych na 1 sekundu
+; 11.0592MHz/2000 = zdrzanie 1 ms
+TIME1MS:
+        mov     R3,#0FFh        ; prva cast slucky pre time delay
+TIME1:  djnz    R3,TIME1        ; prvy cyklus
+        nop                     ; jeden prazdny takt
+        mov     R3,#0CBh        ; druha cast slucky pre time delay
+TIME2:  djnz    R3,TIME2        ; druhy cyklus
+        ret                     ; koniec
         
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
