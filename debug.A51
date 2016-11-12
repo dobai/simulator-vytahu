@@ -10,6 +10,30 @@ _BP_    MACRO
         nop
 ENDM
 
+LJZ     MACRO   NAVESTIE
+        jnz     $+5
+        ljmp    NAVESTIE
+        nop
+ENDM
+
+LJNZ    MACRO   NAVESTIE
+        jz      $+5
+        ljmp    NAVESTIE
+        nop
+ENDM
+
+LJB     MACRO   NAVESTIE
+        jnb     $+5
+        ljmp    NAVESTIE
+        nop
+ENDM
+
+LJNB    MACRO   NAVESTIE
+        jb      $+5
+        ljmp    NAVESTIE
+        nop
+ENDM
+
 POLOHA_LED  MACRO  POLOHA
         clr     LEDU            
         clr     LEDD 
@@ -93,6 +117,7 @@ CALIB:
         jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koniec
         setb    DOWN                        ; inak pod dole
         setb    FAST                        ; a rychlo
+        clr     SLOW                        ;
         lcall   WRITEPORTS                  ; zapis informaciu 
 CALIBLOOP:
         lcall   READPORTS                   ; 
@@ -139,6 +164,7 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
         jz      F1S           ;-; ak nie, opakuj
         setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
+        clr     SLOW            ;
         lcall   WRITEPORTS      ; 
         jmp     UP1           ;-; prejdi do stavu UP1
 UP1:
@@ -152,9 +178,15 @@ UP1A:   lcall   READPORTS       ; nacitanie dat
         jmp     UP1_MB2       ;-; a prejdi do stavu UP1_MB2
 UP1_MB2:
         lcall   READPORTS       ; nacitanie dat
-        jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
-        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
-        lcall   WRITEPORTS      ;
+        jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?     
+        setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;   
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00000100b ;-;
+        jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ;         
         jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
 UP1_MB1:
         lcall   READPORTS       ; nacitanie dat
@@ -179,7 +211,7 @@ F2S:    lcall   READPORTS     ;-; nacitanie dat
         lcall   WRITEPORTS      ;
         
         mov     A, #00011000b ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.)
-        jb      UPOld, F2OK     ; Je to pravda? Naozaj som doteraz isiel hore?
+        jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
         cpl     A               ;       Ak nie, znegujeme
 F2OK:   mov     B, A            ; Masku dame do Bcka
         
@@ -204,10 +236,12 @@ F2:     jb      UPOld, F2UP     ;
         jmp     F2DOWN          ;
 F2UP:   setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
+        clr     SLOW            ;
         lcall   WRITEPORTS      ; 
         jmp     UP2           ;-; prejdi do stavu UP2    
 F2DOWN: setb    DOWN            ; rychly pohyb hore
         setb    FAST            ; 
+        clr     SLOW            ;
         lcall   WRITEPORTS      ; 
         jmp     DOWN2         ;-; prejdi do stavu UP2    
         
@@ -224,7 +258,13 @@ UP2A:   lcall   READPORTS       ; nacitanie dat
 UP2_MB2:
         lcall   READPORTS       ; nacitanie dat
         jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
-        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00001000b ;-;
+        jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
 UP2_MB1:
@@ -232,11 +272,45 @@ UP2_MB1:
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
         mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
         anl     A, #00001000b ;-;
-        jz      UP3           ;-; Ak nie, chod do stavu UP3
-        clr     UP              ; zastav motor
+        jnz     U2_MB1C       ;-; Ak nie, chod do stavu UP3
+        ljmp    UP3             ; |
+U2_MB1C:clr     UP              ; zastav motor
+        setb    UPOld           ;       (a zalohuj)
+        clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
+DOWN2:
+                POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN2    ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     DOWN2_MB2     ;-; a prejdi do stavu DOWN2_MB2
+DOWN2_MB2:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN2_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00000010b ;-;
+        jz      DOWN2_MB1     ;-;       Ak nie, chod do stavu DOWN2_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ;
+        jmp     DOWN2_MB1     ;-; a prejdi do stavu DOWN2_MB1
+DOWN2_MB1:    
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, DOWN2_MB1;-; Sme na zastavovacej clonke?
+        clr     DOWN            ; zastav motor
+        setb    DOWNOld         ;       (a zalohuj)
+        clr     UPOld           ;       (a zalohuj)
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR1        ;-; a prejdi do stavu FLOOR2      
+
 
 ;------------------------------------------------------------------------------- << 3. poschodie >>
 
@@ -248,7 +322,7 @@ F3S:    lcall   READPORTS     ;-; nacitanie dat
         lcall   WRITEPORTS      ;
 
         mov     A, #00010000b ;-; Default predpokladam, ze idem hore (na 4.)
-        jb      UPOld, F3OK      ;-; Je to pravda? Naozaj idem hore?
+        jb      UPOld, F3OK   ;-;   Je to pravda? Naozaj idem hore?
         cpl     A               ;       Ak nie, znegujeme
 F3OK:   mov     B, A            ; Masku dame do Bcka
         
@@ -273,10 +347,12 @@ F3:     jb      UPOld, F3UP     ;
         jmp     F3DOWN          ;
 F3UP:   setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
+        clr     SLOW            ;
         lcall   WRITEPORTS      ; 
         jmp     UP3           ;-; prejdi do stavu UP2    
 F3DOWN: setb    DOWN            ; rychly pohyb hore
         setb    FAST            ; 
+        clr     SLOW            ;
         lcall   WRITEPORTS      ; 
         jmp     DOWN3         ;-; prejdi do stavu UP2    
 
@@ -302,13 +378,21 @@ UP3A:   lcall   READPORTS       ; nacitanie dat
 UP3_MB2:
         lcall   READPORTS       ; nacitanie dat
         jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
-        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00010000b ;-;
+        jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
 UP3_MB1:
         lcall   READPORTS       ; nacitanie dat
         jb      MB1, UP3_MB1  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         clr     UP              ; zastav motor
+        setb    UPOld           ;       (a zalohuj)
+        clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
@@ -325,6 +409,12 @@ DOWN3_MB2:
         lcall   READPORTS       ; nacitanie dat
         jb      MB2, DOWN3_MB2;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00000100b ;-;
+        jz      DOWN3_MB1     ;-;       Ak nie, chod do stavu DOWN3_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
 DOWN3_MB1:    
@@ -354,7 +444,8 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         anl     A, #00001110b ;-;
         jz      F4S           ;-; ak nie, opakuj
         setb    DOWN            ; rychly pohyb dole
-        setb    FAST            ; 
+        setb    FAST            ;
+        clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
         jmp     DOWN4         ;-; prejdi do stavu DOWN4 
 DOWN4:
@@ -371,6 +462,12 @@ DOWN4_MB2:
         jb      MB2, DOWN4_MB2;-; mame uz aj druhu spomalovaciu clonku?          
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+        anl     A, #00001000b ;-;
+        jz      DOWN4_MB1     ;-;       Ak nie, chod do stavu DOWN4_MB1
+        setb    SLOW            ;       Ak ano, spomalme
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ;
         jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
 DOWN4_MB1:    
         lcall   READPORTS       ; nacitanie dat
@@ -380,14 +477,48 @@ DOWN4_MB1:
         jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
         ljmp    DOWN3         ;-; |
 D4_MB1C:clr     DOWN            ; zastav motor
+        setb    DOWNOld         ;       (a zalohuj)
+        clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
         jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
                 
   
-DOWN2: 
-        clr     DOWN            ; zastav motor
-        clr     FAST            ; 
+ERR_1SPOM_C: 
+        clr     UP              ; zastav motor
+        clr     DOWN            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
+        nop
+        nop 
+        
+ERR_2SPOM_C: 
+        clr     UP              ; zastav motor
+        clr     DOWN            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
+        nop
+        nop 
+        
+ERR_ZAST_C: 
+        clr     UP              ; zastav motor
+        clr     DOWN            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
+        nop
+        nop 
+        
+ERR_SKRD: 
+        clr     UP              ; zastav motor
+        clr     DOWN            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
+        nop
+        nop    
+        
+ERR_SKRH: 
+        clr     UP              ; zastav motor
+        clr     DOWN            ; 
         lcall   WRITEPORTS      ; 
         _BP_
         nop
