@@ -2,6 +2,25 @@ $MOD51
 $DEBUG
 
 $include (lift.inc)
+
+_BP_    MACRO 
+        clr     P3.3
+        setb    EX1
+        nop
+        nop
+ENDM
+
+POLOHA_LED  MACRO  POLOHA
+        clr     LEDU            
+        clr     LEDD 
+        clr     FLED1             
+        clr     FLED2                
+        clr     FLED3           
+        clr     FLED4           
+        setb    FLED&POLOHA
+        lcall   WRITEPORTS
+ENDM
+
 FLOORREQ        data    36h
 
 ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
@@ -15,7 +34,7 @@ TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby serio
         org     0033h           ; od tejto adresy sa zacina kod programu
 START:
 RESET:  
-        ; riadiace signaly do pasivnej urovne
+        ; riadiace signaly do pasivnej urovne 
         setb    WRNOT
         setb    RDNOT
         mov     STOPTIMER, #0
@@ -23,7 +42,7 @@ RESET:
 
         ; pockame si na inicializaciu obvodov 8255  
         mov     R1, #0 
-        mov     R2, #01h             ;Povodne #0ffh <<EMULATOR>>
+        mov     R2, #0ffh
         djnz    R1, $
         djnz    R2, $-2
         
@@ -44,6 +63,8 @@ RESET:
         nop
         nop
         setb    WRNOT
+        
+        _BP_
 
         ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
         mov     INPORTA, #0
@@ -60,9 +81,7 @@ RESET:
         mov     OUTPORTB, #0
         mov     OUTPORTC, #0
         call    WRITEPORTS          ; zapis novu informaciu
-        
-        call    WAITFORTIMER
-        
+
         mov     INPORTA, #0
         mov     INPORTB, #0         
         mov     INPORTC, #0
@@ -86,6 +105,7 @@ CALIBEND:
         clr     DOWN                        ;
         setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
+        _BP_
 MAIN:
 
 ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
@@ -106,74 +126,215 @@ MAIN:
 ; ****************************************************************************
 
 
+;------------------------------------------------------------------------------- << 1. poschodie >>
+
 FLOOR1:
-        lcall   WAITFORTIMER
-F1S:    lcall   READPORTS
-        mov     A, INPORTA
-        anl     A, #00011100b
-        clr     PKO1
-        lcall   WRITEPORTS
-        jz      F1S  
-        setb    UP                        ; inak pod dole
-        setb    FAST                        ; a rychlo
-        lcall   WRITEPORTS                  ; zapis informaciu
-        jmp     UP1
+                POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   WAITFORTIMER    ; simulacia TIMERu
+F1S:    lcall   READPORTS     ;-; nacitanie dat
+        clr     PKO1          ;-; vynulovanie volby poschodia na ktorom stojim
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        anl     A, #00011100b ;-;
+        jz      F1S           ;-; ak nie, opakuj
+        setb    UP              ; rychly pohyb hore
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     UP1           ;-; prejdi do stavu UP1
 UP1:
-        lcall   READPORTS
-        jb      MB2, UP1
-        lcall   READPORTS
-        jnb     MB2, $-3                
-        setb    LEDD
-        lcall   WRITEPORTS
-        jmp     UP1_MB2
+                POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP1      ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     UP1_MB2       ;-; a prejdi do stavu UP1_MB2
 UP1_MB2:
-        lcall   READPORTS
-        jb      MB2, UP1_MB2              
-        setb    LEDU
-        lcall   WRITEPORTS
-        jmp     UP1_MB1        
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP1_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
 UP1_MB1:
-        lcall   READPORTS
-        jb      MB1, UP1_MB1 
-        clr     LEDU
-        clr     LEDD
-        lcall   WRITEPORTS
-        jmp     FLOOR2
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
+        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+        anl     A, #00000100b ;-;
+        jz      UP2           ;-; Ak nie, chod do stavu UP2
+        clr     UP              ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
+
+;------------------------------------------------------------------------------- << 2. poschodie >>
 
 FLOOR2:
-        clr     UP                        ; inak pod dole
-        clr     FAST                        ; a rychlo
-        clr     FLED1     
-        setb    FLED2     
-        clr     FLED3     
-        clr     FLED4     
-        lcall   WRITEPORTS                  ; zapis informaciu
-        jmp     ENDPROG
+                POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   WAITFORTIMER    ; simulacia TIMERu
+F2S:    lcall   READPORTS     ;-; nacitanie dat
+        clr     PKO2          ;-; vynulovanie volby poschodia na ktorom stojim
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        anl     A, #00011000b ;-;
+        jz      F2S           ;-; ak nie, opakuj
+        setb    UP              ; rychly pohyb hore
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     UP2           ;-; prejdi do stavu UP2        
 UP2:
-
-UP2_MB1:
-
+                POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP2      ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     UP2_MB2       ;-; a prejdi do stavu UP2_MB2
 UP2_MB2:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP2_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
+UP2_MB1:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
+        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+        anl     A, #00001000b ;-;
+        jz      UP3           ;-; Ak nie, chod do stavu UP3
+        clr     UP              ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
 
-DOWN2_MB1:
+;------------------------------------------------------------------------------- << 3. poschodie >>
 
-DOWN2_MB2:
-     
-     
-HIGHER:
-        lcall   READPORTS
-        jb      MB1, HIGHER
-        clr     UP                        ; inak pod dole
-        clr     FAST                      ; a rychlo
-        lcall   WRITEPORTS                ; zapis informaciu              
-ENDPROG:
-        ;----------------------------breakpoint
-BP:     clr     P3.3
-        setb    EX1
+FLOOR3:
+                POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   WAITFORTIMER    ; simulacia TIMERu
+F3S:    lcall   READPORTS     ;-; nacitanie dat
+        clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        anl     A, #00010000b ;-;
+        jz      F3S           ;-; ak nie, opakuj
+        setb    UP              ; rychly pohyb hore
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     UP3           ;-; prejdi do stavu UP3        
+UP3:
+                POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP3      ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     UP3_MB2       ;-; a prejdi do stavu UP3_MB2
+UP3_MB2:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, UP3_MB2  ;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        jmp     UP3_MB1       ;-; a prejdi do stavu UP3_MB1 
+UP3_MB1:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, UP3_MB1  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
+        clr     UP              ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR4        ;-; a prejdi do stavu FLOOR4   
+DOWN3A:
+                POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN3A    ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     DOWN3_MB2     ;-; a prejdi do stavu DOWN3_MB2
+DOWN3_MB2:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN3_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
+DOWN3_MB1:    
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
+        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+        anl     A, #00000100b ;-;
+        jz      DOWN2         ;-; Ak nie, chod do stavu DOWN2
+        clr     DOWN            ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2      
+      
+        
+;------------------------------------------------------------------------------- << 4. poschodie >>
+
+FLOOR4:
+                POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   WAITFORTIMER    ; simulacia TIMERu
+F4S:    lcall   READPORTS     ;-; nacitanie dat
+        clr     PKO4          ;-; vynulovanie volby poschodia na ktorom stojim
+        lcall   WRITEPORTS      ;
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco menej ako poschodie na ktorom stojim
+        anl     A, #00001110b ;-;
+        jz      F4S           ;-; ak nie, opakuj
+        setb    DOWN            ; rychly pohyb dole
+        setb    FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     DOWN4         ;-; prejdi do stavu DOWN4 
+DOWN4:
+                POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN4    ;-; mame uz 1. spomalovaciu clonku?
+        lcall   READPORTS       ; ak ano, sme z nej uz prec?
+        jnb     MB2, $-3        ;       
+        setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
+        lcall   WRITEPORTS      ;
+        jmp     DOWN4_MB2     ;-; a prejdi do stavu DOWN4_MB2
+DOWN4_MB2:
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB2, DOWN4_MB2;-; mame uz aj druhu spomalovaciu clonku?          
+        setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
+        lcall   WRITEPORTS      ;
+        jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
+DOWN4_MB1:    
+        lcall   READPORTS       ; nacitanie dat
+        jb      MB1, DOWN4_MB1;-; Sme na zastavovacej clonke?
+        mov     A, INPORTA      ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene?
+        anl     A, #00001000b ;-;
+        jz      DOWN3         ;-; Ak nie, chod do stavu DOWN3
+        clr     DOWN            ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
+                
+  
+DOWN2: 
+        clr     DOWN            ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
         nop
-        ;----------------------------
+        nop
+        
+DOWN3: 
+        clr     DOWN            ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
+        _BP_
+        nop
+        nop                
+                
+                
+ENDPROG:
         setb    KS
         call    WRITEPORTS                ; zapis novu informaciu
+        _BP_
         ret
 
 
@@ -183,8 +344,12 @@ BP:     clr     P3.3
 ; bude timer)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 WAITFORTIMER:
-        lcall   READPORTS                   ; 
-        jnb     PI2D, WAITFORTIMER           ; ak nebolo stlacene tlacidlo PO1, cakaj 
+        setb    PO3U                        ; rozsvieti indikator cakania (poschodie 4)
+        lcall   WRITEPORTS                  ;
+WAIT:   lcall   READPORTS                   ; 
+        jnb     PI3D, WAITFORTIMER          ; ak nebolo stlacene tlacidlo PO1, cakaj 
+        clr     PO3U                         ; zhasne indikator cakania (poschodie 4)
+        lcall   WRITEPORTS
         ret
 
 
