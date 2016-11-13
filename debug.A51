@@ -51,10 +51,12 @@ ENDM
 ZASTAV  MACRO  C_POSCH, SMER
                                         ; Chceme tu zastavit? - je toto poschodie zvolene? 
         clr     C                       ; | Idem robit cachre-machre s Carry bitom
+        mov     A, #0h                  ; | Aj Acc potrebujem prazdny
         orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine?
         orl     C, PI&C_POSCH&SMER      ; | Mam v tomto smere stlacene tlacidlo v sachte?
         anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim) 
         orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
+        ;mov     A, bmSmerPI1U
         addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
 ENDM
 
@@ -188,11 +190,16 @@ FLOOR1:
         lcall   WAITFORTIMER    ; simulacia TIMERu
 F1S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO1          ;-; vynulovanie volby poschodia na ktorom stojim
+        clr     PO1             ;
         lcall   WRITEPORTS      ;
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
+        mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
         anl     A, #00011100b ;-;
-        jz      F1S           ;-; ak nie, opakuj
-        setb    UP              ; rychly pohyb hore
+        jnz     F1OK          ;-; ak ano, podme na to
+        mov     A, INPORTC      ; zistenie, ci bolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
+        anl     A, #00111110b ;-;
+        jnz     F1OK          ;-; ak ano, podme na to
+        jmp     F1S             ; Nemam sa kde hnut, opakujem
+F1OK:   setb    UP              ; rychly pohyb hore
         setb    FAST            ; 
         clr     SLOW            ;
         lcall   WRITEPORTS      ; 
@@ -229,7 +236,7 @@ UP1_MB1:
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
         ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
-        jz      UP2           ;-; Ak nie, chod do stavu UP2
+        ljz     UP2           ;-; Ak nie, chod do stavu UP2
         clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj) 
         clr     DOWNOld         ;       (a zalohuj)
@@ -244,29 +251,49 @@ FLOOR2:
         lcall   WAITFORTIMER    ; simulacia TIMERu
 F2S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO2          ;-; vynulovanie volby poschodia na ktorom stojim
+        clr     PO2U            ;
+        clr     PO2D            ;
         lcall   WRITEPORTS      ;
-        
-        mov     A, #00011000b ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.)
+        ;_BP_
+        mov     R1, #11111000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
+        mov     R2, #11111000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
         jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
-        cpl     A               ;       Ak nie, znegujeme
-F2OK:   mov     B, A            ; Masku dame do Bcka
-        
-        ; Pohyb v jednom smere (nevieme v ktorom)
-        anl     B, #00011010b  ;-; este ju kozmeticky upravime
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, B            ; tu ju pouzijeme       
-        jnz     F2              ; nasli sme poschodie v tomto smere
+        mov     A, R1           ;       Ak nie, znegujeme masku kabiny
+        cpl     A               ;       |
+        mov     R1, A           ;       |
+        mov     A, R2           ;       A znegujeme aj masku sachty
+        cpl     A               ;       |
+        mov     R2, A           ;       |
+F2OK:   ; Pohyb v jednom smere (nevieme v ktorom)
+        mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Kabina)
+        anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R1           ;  | 
+        jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
+                                ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Sachta)
+        mov     A, INPORTA      ; Mam v kabine nieco stlacene?
+        anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi (kabina)
+        jnz     F2SW            ;  | Ak ano, idem rovno zistovat opacny smer.
+        mov     A, INPORTC      ; Mam stlacene nieco v sachte (mojim smerom)?    
+        anl     A, #00111001b   ;  | Beriem iba bity predstavujuce tlacidla privolavacov
+        anl     A, R2           ;  |   
+        jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         ; Pohyb v opacnom smere (nevieme v ktorom)
-        cpl     UPOld           ;  Znegujem stary posun
+F2SW:   cpl     UPOld           ;  Znegujem stary posun
         cpl     DOWNOld         ;  |
-        mov     A, B            ;  Znegujeme masku
+        mov     A, R1           ;  Znegujeme masky
         cpl     A               ;  |
-        mov     B, A            ;  |
-        anl     B, #00011010b  ;-; este ju kozmeticky upravime
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, B            ; tu ju pouzijeme       
-        jnz     F2              ; nasli sme poschodie v tomto smere
-        
+        mov     R1, A           ;  |
+        mov     A, R2           ;  |
+        cpl     A               ;  |
+        mov     R2, A           ;  |               
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
+        anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R1           ;  | 
+        jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
+        mov     A, INPORTC      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
+        anl     A, #00111001b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R2           ;  | 
+        jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
 F2:     jb      UPOld, F2UP     ;   
         jmp     F2DOWN          ;
@@ -368,29 +395,49 @@ FLOOR3:
         lcall   WAITFORTIMER    ; simulacia TIMERu
 F3S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
+        clr     PO3U            ;
+        clr     PO3D            ;
         lcall   WRITEPORTS      ;
-
-        mov     A, #00010000b ;-; Default predpokladam, ze idem hore (na 4.)
-        jb      UPOld, F3OK   ;-;   Je to pravda? Naozaj idem hore?
-        cpl     A               ;       Ak nie, znegujeme
-F3OK:   mov     B, A            ; Masku dame do Bcka
-        
-        ; Pohyb v jednom smere (nevieme v ktorom)
-        anl     B, #00010110b  ;-; este ju kozmeticky upravime
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, B            ; tu ju pouzijeme       
-        jnz     F3              ; nasli sme poschodie v tomto smere
+       ;_BP_
+        mov     R1, #11110000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
+        mov     R2, #11100000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
+        jb      UPOld, F3OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
+        mov     A, R1           ;       Ak nie, znegujeme masku kabiny
+        cpl     A               ;       |
+        mov     R1, A           ;       |
+        mov     A, R2           ;       A znegujeme aj masku sachty
+        cpl     A               ;       |
+        mov     R2, A           ;       |        
+F3OK:   ; Pohyb v jednom smere (nevieme v ktorom)
+        mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Kabina)
+        anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R1           ;  | 
+        jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
+                                ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Sachta)
+        mov     A, INPORTA      ; Mam v kabine nieco stlacene?
+        anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi (kabina)
+        jnz     F3SW            ;  | Ak ano, idem rovno zistovat opacny smer.
+        mov     A, INPORTC      ; Mam stlacene nieco v sachte (mojim smerom)?    
+        anl     A, #00100111b   ;  | Beriem iba bity predstavujuce tlacidla privolavacov
+        anl     A, R2           ;  |   
+        jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         ; Pohyb v opacnom smere (nevieme v ktorom)
-        cpl     UPOld           ;  Znegujem stary posun
+F3SW:   cpl     UPOld           ;  Znegujem stary posun
         cpl     DOWNOld         ;  |
-        mov     A, B            ;  Znegujeme masku
+        mov     A, R1           ;  Znegujeme masky
         cpl     A               ;  |
-        mov     B, A            ;  |
-        anl     B, #00010110b  ;-; este ju kozmeticky upravime
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim
-        anl     A, B            ; tu ju pouzijeme       
-        jnz     F3              ; nasli sme poschodie v tomto smere
-        
+        mov     R1, A           ;  |
+        mov     A, R2           ;  |
+        cpl     A               ;  |
+        mov     R2, A           ;  |               
+        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
+        anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R1           ;  | 
+        jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
+        mov     A, INPORTC      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
+        anl     A, #00100111b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
+        anl     A, R2           ;  | 
+        jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
 F3:     jb      UPOld, F3UP     ;   
         jmp     F3DOWN          ;
@@ -492,11 +539,16 @@ FLOOR4:
         lcall   WAITFORTIMER    ; simulacia TIMERu
 F4S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO4          ;-; vynulovanie volby poschodia na ktorom stojim
+        clr     PO4            ;
         lcall   WRITEPORTS      ;
-        mov     A, INPORTA      ; zistenie, cibolo stlacene nieco menej ako poschodie na ktorom stojim
+        mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco menej ako poschodie na ktorom stojim (Kabina)
         anl     A, #00001110b ;-;
-        jz      F4S           ;-; ak nie, opakuj
-        setb    DOWN            ; rychly pohyb dole
+        jnz     F4OK          ;-; ak ano, ideme na to
+        mov     A, INPORTC      ; zistenie, ci bolo stlacene nieco menej ako poschodie na ktorom stojim (Sachta)
+        anl     A, #00011111b ;-;
+        jnz     F4OK          ;-; ak ano, ideme na to
+        jmp     F4S             ; Nemam sa kde hnut, opakujem
+F4OK:   setb    DOWN            ; rychly pohyb dole
         setb    FAST            ;
         clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
@@ -616,7 +668,7 @@ TIME4:  djnz    R1,TIME4        ; 43*2
 ; bude timer)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 WAITFORTIMER:
-        mov     R3, #20h
+        mov     R3, #10h
 DEL1:   lcall   TIME10MS
         djnz    R3, DEL1
         ret

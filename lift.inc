@@ -163,3 +163,19 @@ bmPI2U            equ    00000100b
 bmPI3D            equ    00001000b
 bmPI3U            equ    00010000b
 bmPI4             equ    00100000b
+
+; Sachta - masky
+bmSmerPI1U            equ    00111110b
+bmSmerPI2D            equ    00000001b
+bmSmerPI2U            equ    00111000b
+bmSmerPI3D            equ    00000111b
+bmSmerPI3U            equ    00100000b
+bmSmerPI4D            equ    00011111b
+
+; Kabina - masky
+bmSmerPKI1U           equ    00011100b
+bmSmerPKI2D           equ    00000010b
+bmSmerPKI2U           equ    00011000b
+bmSmerPKI3D           equ    00000110b
+bmSmerPKI3U           equ    00010000b
+bmSmerPKI4D           equ    00001110b
