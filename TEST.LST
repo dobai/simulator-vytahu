@@ -1,0 +1,160 @@
+VYTAH/TES                                                                                                     PAGE 1
+
+                       1    ;pokus - zistenie najvyssieho (a najnizsieho) poschodia
+                       2    
+                       3    $MOD51
+                       4    $DEBUG
+                       5    
+                       6    NAJNIZSIE  MACRO   PRIVOLAVACE
+                       7            mov     A, PRIVOLAVACE
+                       8            clr     C;
+                       9            rlc     A
+                      10            anl     A, #01111110b
+                      11            mov     R0, #05
+                      12            jz      $+8             ;LL1:
+                      13            clr     C
+                      14            rlc     A
+                      15            clr     C
+                      16            rlc     A
+                      17            djnz    R0, $-6
+                      18                                    ; LL2:
+                      19            mov     A, R0   
+                      20    ENDM
+                      21    
+                      22    _BP_    MACRO 
+                      23            clr     P3.3
+                      24            setb    EX1
+                      25            nop
+                      26            nop
+                      27    ENDM
+                      28    
+                      29    
+0033                  30            org     0033h           ; od tejto adresy sa zacina kod programu
+                      31    
+                      32 +1         NAJNIZSIE #10000000b
+0033 7480             33 +1         mov     A, #10000000b
+0035 C3               34 +1         clr     C;
+0036 33               35 +1         rlc     A
+0037 547E             36 +1         anl     A, #01111110b
+0039 7805             37 +1         mov     R0, #05
+003B 6006             38 +1         jz      $+8             ;LL1:
+003D C3               39 +1         clr     C
+003E 33               40 +1         rlc     A
+003F C3               41 +1         clr     C
+0040 33               42 +1         rlc     A
+0041 D8F8             43 +1         djnz    R0, $-6
+                      44 +1                                 ; LL2:
+0043 E8               45 +1         mov     A, R0   
+                      47 +1         _BP_
+0044 C2B3             48 +1         clr     P3.3
+0046 D2AA             49 +1         setb    EX1
+0048 00               50 +1         nop
+0049 00               51 +1         nop
+                      53 +1         NAJNIZSIE #10100010b
+004A 74A2             54 +1         mov     A, #10100010b
+004C C3               55 +1         clr     C;
+004D 33               56 +1         rlc     A
+004E 547E             57 +1         anl     A, #01111110b
+0050 7805             58 +1         mov     R0, #05
+0052 6006             59 +1         jz      $+8             ;LL1:
+0054 C3               60 +1         clr     C
+VYTAH/TES#                                                                                                   PAGE 2
+
+0055 33               61 +1         rlc     A
+0056 C3               62 +1         clr     C
+0057 33               63 +1         rlc     A
+0058 D8F8             64 +1         djnz    R0, $-6
+                      65 +1                                 ; LL2:
+005A E8               66 +1         mov     A, R0   
+                      68 +1         _BP_
+005B C2B3             69 +1         clr     P3.3
+005D D2AA             70 +1         setb    EX1
+005F 00               71 +1         nop
+0060 00               72 +1         nop
+                      74 +1         NAJNIZSIE #10000100b
+0061 7484             75 +1         mov     A, #10000100b
+0063 C3               76 +1         clr     C;
+0064 33               77 +1         rlc     A
+0065 547E             78 +1         anl     A, #01111110b
+0067 7805             79 +1         mov     R0, #05
+0069 6006             80 +1         jz      $+8             ;LL1:
+006B C3               81 +1         clr     C
+006C 33               82 +1         rlc     A
+006D C3               83 +1         clr     C
+006E 33               84 +1         rlc     A
+006F D8F8             85 +1         djnz    R0, $-6
+                      86 +1                                 ; LL2:
+0071 E8               87 +1         mov     A, R0   
+                      89 +1         _BP_
+0072 C2B3             90 +1         clr     P3.3
+0074 D2AA             91 +1         setb    EX1
+0076 00               92 +1         nop
+0077 00               93 +1         nop
+                      95 +1         NAJNIZSIE #10001001b
+0078 7489             96 +1         mov     A, #10001001b
+007A C3               97 +1         clr     C;
+007B 33               98 +1         rlc     A
+007C 547E             99 +1         anl     A, #01111110b
+007E 7805            100 +1         mov     R0, #05
+0080 6006            101 +1         jz      $+8             ;LL1:
+0082 C3              102 +1         clr     C
+0083 33              103 +1         rlc     A
+0084 C3              104 +1         clr     C
+0085 33              105 +1         rlc     A
+0086 D8F8            106 +1         djnz    R0, $-6
+                     107 +1                                 ; LL2:
+0088 E8              108 +1         mov     A, R0   
+                     110 +1         _BP_
+0089 C2B3            111 +1         clr     P3.3
+008B D2AA            112 +1         setb    EX1
+008D 00              113 +1         nop
+008E 00              114 +1         nop
+                     116 +1         NAJNIZSIE #10000000b
+008F 7480            117 +1         mov     A, #10000000b
+0091 C3              118 +1         clr     C;
+0092 33              119 +1         rlc     A
+0093 547E            120 +1         anl     A, #01111110b
+0095 7805            121 +1         mov     R0, #05
+0097 6006            122 +1         jz      $+8             ;LL1:
+0099 C3              123 +1         clr     C
+009A 33              124 +1         rlc     A
+VYTAH/TESi                                                                                                   PAGE 3
+
+009B C3              125 +1         clr     C
+009C 33              126 +1         rlc     A
+009D D8F8            127 +1         djnz    R0, $-6
+                     128 +1                                 ; LL2:
+009F E8              129 +1         mov     A, R0   
+                     131 +1         _BP_
+00A0 C2B3            132 +1         clr     P3.3
+00A2 D2AA            133 +1         setb    EX1
+00A4 00              134 +1         nop
+00A5 00              135 +1         nop
+                     137 +1         NAJNIZSIE #01010110b
+00A6 7456            138 +1         mov     A, #01010110b
+00A8 C3              139 +1         clr     C;
+00A9 33              140 +1         rlc     A
+00AA 547E            141 +1         anl     A, #01111110b
+00AC 7805            142 +1         mov     R0, #05
+00AE 6006            143 +1         jz      $+8             ;LL1:
+00B0 C3              144 +1         clr     C
+00B1 33              145 +1         rlc     A
+00B2 C3              146 +1         clr     C
+00B3 33              147 +1         rlc     A
+00B4 D8F8            148 +1         djnz    R0, $-6
+                     149 +1                                 ; LL2:
+00B6 E8              150 +1         mov     A, R0   
+                     152 +1         _BP_
+00B7 C2B3            153 +1         clr     P3.3
+00B9 D2AA            154 +1         setb    EX1
+00BB 00              155 +1         nop
+00BC 00              156 +1         nop
+                     158    
+                     159            
+                     160            end
+
+VERSION 1.2h ASSEMBLY COMPLETE, 0 ERRORS FOUND
+VYTAH/TES                                                                                                     PAGE 4
+
+EX1. . . . . . . . . . . . . . .  B ADDR  00AAH  PREDEFINED  
+P3 . . . . . . . . . . . . . . .  D ADDR  00B0H  PREDEFINED  

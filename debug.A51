@@ -1,8 +1,9 @@
 ; TODO: 
-; Dorob nulovanie volieb v sachte 
+; OK - Dorob nulovanie volieb v sachte 
 ; Dorob 3UP a 2 DOWN (tam kde stojis vzdy)
 ; Asi by bolo dobre premenovat PI1, PO1 a PI4 PO4 na alternativy s koncovkami U a D
 ; Poriadne otestuj !!! 
+; Umo+zni stlacat tlacidla aj ked bezi delay
 
 
 $MOD51
