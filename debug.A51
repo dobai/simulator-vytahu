@@ -42,6 +42,19 @@ LJNB    MACRO   TESTBIT, NAVESTIE
         nop
 ENDM
 
+CJE     MACRO   OP1, OP2, NAVESTIE
+        cjne    OP1, OP2, $+7
+        jmp    NAVESTIE
+        nop
+ENDM
+
+LCJNE   MACRO   OP1, OP2, NAVESTIE
+        cjne    OP1, OP2, $+6
+        jmp     $+6
+        ljmp    NAVESTIE
+        nop
+ENDM
+
 ZAKMITC MACRO   TYPCLONKY
         lcall   TIME10MS        ; pockame 10 ms kym sa hodnota ustali (xe som na clonke)
         lcall   READPORTS       ; Uz sme z tej clonky prec?
@@ -59,6 +72,71 @@ ZASTAV  MACRO  C_POSCH, SMER
         orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
         ;mov     A, bmSmerPI1U
         addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
+ENDM
+
+NAJNIZSIE  MACRO
+        mov     A, INPORTC      ; INPORTC - vektor "privolavace zo sachty"               
+        rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1  X | 
+        anl     A, #01111110b   ; Vynulujem nedefinovane bity
+        mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, aby som mal na konci rovno cislo poschodia)
+ ; LL1: 
+        jz      $+8;LL2         ; Ak mam 0 - ziadne dalsie poschodia ne su pritomne, skocim na LL2
+        clr     C               ; Inak shiftnem o 2
+        rlc     A               ;
+        clr     C               ;
+        rlc     A               ;
+        djnz    R0, $-6         ; ...a pokracujem v zistovani
+; LL2:
+        mov     A, R0           ; vysledne (najnizsie zvolene) poschodie je index v R0
+ENDM
+
+NAJVYSSIE  MACRO
+        mov     A, INPORTC      ; INPORTC - vektor "privolavace zo sachty"               
+        rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1  X | 
+        anl     A, #01111110b   ; Vynulujem nedefinovane bity
+        mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, aby som mal na konci rovno cislo poschodia)
+ ; LL1: 
+        jz      $+8;LL2         ; Ak mam 0 - ziadne dalsie poschodia ne su pritomne, skocim na LL2
+        clr     C               ; Inak shiftnem o 2
+        rrc     A               ;
+        clr     C               ;
+        rrc     A               ;
+        djnz    R0, $-6         ; ...a pokracujem v zistovani
+; LL2:
+        mov     A, #5           ; vysledne (najnizsie zvolene) poschodie je index v R0
+        clr     C               ;
+        subb    A, R0           ;
+ENDM
+
+VYSSIE_KABINA  MACRO  POSCH
+        mov     A, INPORTA
+        anl     A, #00011110b
+        clr     C
+        rrc     A
+;LL1    
+        mov     R0, #&POSCH
+        clr     C
+        rrc     A
+        djnz    R0, $-2;LL1
+ENDM
+
+NIZSIE_KABINA  MACRO  POSCH
+        mov     A, #5
+        clr     C
+        subb    A, #&POSCH
+        mov     R0, A
+        mov     A, INPORTA
+        anl     A, #00011110b
+        clr     C
+        rlc     A
+        clr     C
+        rlc     A
+        clr     C
+        rlc     A
+;LL1   
+        clr     C
+        rlc     A
+        djnz    R0, $-2;LL1
 ENDM
 
 POLOHA_LED  MACRO  POLOHA
@@ -236,9 +314,15 @@ UP1_MB1:
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
+        
         ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
-        ljz     UP2           ;-; Ak nie, chod do stavu UP2
-        clr     UP              ; zastav motor
+        jnz     U1_MB1C       ;-; Ak ano, zastav
+        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi? (potom stojime urcite)
+        LCJNE   A, #2, UP2      ; |   ak nie, nezastavujeme 
+        VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      U1_MB1C         ; |   ak neni zastavujem         
+        ljmp    UP2             ; |   inak nezastavim        
+U1_MB1C:clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj) 
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
@@ -341,9 +425,14 @@ UP2_MB1:
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
+        
         ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
-        jnz     U2_MB1C       ;-; Ak nie, chod do stavu UP3
-        ljmp    UP3             ; |
+        jnz     U2_MB1C       ;-; Ak ano, zastav
+        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #3, UP3      ; |   ak nie, nezastavujeme  
+        VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      U2_MB1C         ; |   ak neni zastavujem  
+        ljmp    UP3             ; |   inak nezastavim
 U2_MB1C:clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
@@ -523,8 +612,12 @@ DOWN3_MB1:
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
         ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
-        jnz     D3_MB1C         ; Ak nie, chod do stavu DOWN2
-        ljmp    DOWN2         ;-; |
+        jnz     D3_MB1C         ; Ak ano, zastav
+        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #2, DOWN2    ; |   ak nie, nezastavujeme  
+        NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      D3_MB1C         ; |   ak neni zastavujem                  
+        ljmp    DOWN2         ;-; |        
 D3_MB1C:clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
@@ -586,8 +679,12 @@ DOWN4_MB1:
         ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
         ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
-        jnz     D4_MB1C         ; Ak nie, chod do stavu DOWN3
-        ljmp    DOWN3         ;-; |
+        jnz     D4_MB1C       ;-; Ak ano, zastav
+        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #3, DOWN3    ; |   ak nie, nezastavujeme  
+        NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      D4_MB1C         ; |   ak neni zastavujem          
+        ljmp    DOWN3         ;-; |       
 D4_MB1C:clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)

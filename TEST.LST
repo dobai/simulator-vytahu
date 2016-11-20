@@ -6,155 +6,351 @@
                        4    $DEBUG
                        5    
                        6    NAJNIZSIE  MACRO   PRIVOLAVACE
-                       7            mov     A, PRIVOLAVACE
-                       8            clr     C;
-                       9            rlc     A
-                      10            anl     A, #01111110b
-                      11            mov     R0, #05
-                      12            jz      $+8             ;LL1:
-                      13            clr     C
-                      14            rlc     A
-                      15            clr     C
-                      16            rlc     A
-                      17            djnz    R0, $-6
-                      18                                    ; LL2:
-                      19            mov     A, R0   
+                       7            mov     A, PRIVOLAVACE  ; INPORTC - vektor "privolavace zo sachty"               
+                       8            rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie 
+                                                                               dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1 
+                                                                                X | 
+                       9            anl     A, #01111110b   ; Vynulujem nedefinovane bity
+                      10            mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, 
+                                                                               aby som mal na konci rovno cislo poschodi
+                                                                               a)
+                      11     ; LL1: 
+                      12            jz      $+8;LL2         ; Ak mam 0 - ziadne dalsie poschodia ne su pritomne, skocim 
+                                                                               na LL2
+                      13            clr     C               ; Inak shiftnem o 2
+                      14            rlc     A               ;
+                      15            clr     C               ;
+                      16            rlc     A               ;
+                      17            djnz    R0, $-6         ; ...a pokracujem v zistovani
+                      18    ; LL2:
+                      19            mov     A, R0           ; vysledne (najnizsie zvolene) poschodie je index v R0
                       20    ENDM
                       21    
-                      22    _BP_    MACRO 
-                      23            clr     P3.3
-                      24            setb    EX1
-                      25            nop
-                      26            nop
-                      27    ENDM
-                      28    
-                      29    
-0033                  30            org     0033h           ; od tejto adresy sa zacina kod programu
-                      31    
-                      32 +1         NAJNIZSIE #10000000b
-0033 7480             33 +1         mov     A, #10000000b
-0035 C3               34 +1         clr     C;
-0036 33               35 +1         rlc     A
-0037 547E             36 +1         anl     A, #01111110b
-0039 7805             37 +1         mov     R0, #05
-003B 6006             38 +1         jz      $+8             ;LL1:
-003D C3               39 +1         clr     C
-003E 33               40 +1         rlc     A
-003F C3               41 +1         clr     C
-0040 33               42 +1         rlc     A
-0041 D8F8             43 +1         djnz    R0, $-6
-                      44 +1                                 ; LL2:
-0043 E8               45 +1         mov     A, R0   
-                      47 +1         _BP_
-0044 C2B3             48 +1         clr     P3.3
-0046 D2AA             49 +1         setb    EX1
-0048 00               50 +1         nop
-0049 00               51 +1         nop
-                      53 +1         NAJNIZSIE #10100010b
-004A 74A2             54 +1         mov     A, #10100010b
-004C C3               55 +1         clr     C;
-004D 33               56 +1         rlc     A
-004E 547E             57 +1         anl     A, #01111110b
-0050 7805             58 +1         mov     R0, #05
-0052 6006             59 +1         jz      $+8             ;LL1:
-0054 C3               60 +1         clr     C
-VYTAH/TES#                                                                                                   PAGE 2
+                      22    NAJVYSSIE  MACRO   PRIVOLAVACE
+                      23            mov     A, PRIVOLAVACE  ; INPORTC - vektor "privolavace zo sachty"               
+                      24            rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie 
+                                                                               dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1 
+                                                                                X | 
+                      25            anl     A, #01111110b   ; Vynulujem nedefinovane bity
+                      26            mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, 
+                                                                               aby som mal na konci rovno cislo poschodi
+                                                                               a)
+                      27     ; LL1: 
+                      28            jz      $+8;LL2         ; Ak mam 0 - ziadne dalsie poschodia ne su pritomne, skocim 
+                                                                               na LL2
+                      29            clr     C               ; Inak shiftnem o 2
+                      30            rrc     A               ;
+                      31            clr     C               ;
+                      32            rrc     A               ;
+                      33            djnz    R0, $-6         ; ...a pokracujem v zistovani
+                      34    ; LL2:
+                      35            mov     A, #5           ; vysledne (najnizsie zvolene) poschodie je index v R0
+                      36            clr     C               ;
+                      37            subb    A, R0           ;
+                      38    ENDM
+                      39    
+                      40    VYSSIE_KABINA  MACRO POSCH, PRIVOLAVACE
+                      41            mov     A, PRIVOLAVACE
+                      42            anl     A, #00011110b
+                      43            clr     C
+                      44            rrc     A
+                      45    ;LL1    
+                      46            mov     R0, #&POSCH
+                      47            clr     C
+                      48            rrc     A
+VYTAH/TES                                                                                                    PAGE 2
 
-0055 33               61 +1         rlc     A
-0056 C3               62 +1         clr     C
-0057 33               63 +1         rlc     A
-0058 D8F8             64 +1         djnz    R0, $-6
-                      65 +1                                 ; LL2:
-005A E8               66 +1         mov     A, R0   
-                      68 +1         _BP_
-005B C2B3             69 +1         clr     P3.3
-005D D2AA             70 +1         setb    EX1
-005F 00               71 +1         nop
-0060 00               72 +1         nop
-                      74 +1         NAJNIZSIE #10000100b
-0061 7484             75 +1         mov     A, #10000100b
-0063 C3               76 +1         clr     C;
-0064 33               77 +1         rlc     A
-0065 547E             78 +1         anl     A, #01111110b
-0067 7805             79 +1         mov     R0, #05
-0069 6006             80 +1         jz      $+8             ;LL1:
-006B C3               81 +1         clr     C
-006C 33               82 +1         rlc     A
-006D C3               83 +1         clr     C
-006E 33               84 +1         rlc     A
-006F D8F8             85 +1         djnz    R0, $-6
-                      86 +1                                 ; LL2:
-0071 E8               87 +1         mov     A, R0   
-                      89 +1         _BP_
-0072 C2B3             90 +1         clr     P3.3
-0074 D2AA             91 +1         setb    EX1
-0076 00               92 +1         nop
-0077 00               93 +1         nop
-                      95 +1         NAJNIZSIE #10001001b
-0078 7489             96 +1         mov     A, #10001001b
-007A C3               97 +1         clr     C;
-007B 33               98 +1         rlc     A
-007C 547E             99 +1         anl     A, #01111110b
-007E 7805            100 +1         mov     R0, #05
-0080 6006            101 +1         jz      $+8             ;LL1:
-0082 C3              102 +1         clr     C
-0083 33              103 +1         rlc     A
-0084 C3              104 +1         clr     C
-0085 33              105 +1         rlc     A
-0086 D8F8            106 +1         djnz    R0, $-6
-                     107 +1                                 ; LL2:
-0088 E8              108 +1         mov     A, R0   
-                     110 +1         _BP_
-0089 C2B3            111 +1         clr     P3.3
-008B D2AA            112 +1         setb    EX1
-008D 00              113 +1         nop
-008E 00              114 +1         nop
-                     116 +1         NAJNIZSIE #10000000b
-008F 7480            117 +1         mov     A, #10000000b
-0091 C3              118 +1         clr     C;
-0092 33              119 +1         rlc     A
-0093 547E            120 +1         anl     A, #01111110b
-0095 7805            121 +1         mov     R0, #05
-0097 6006            122 +1         jz      $+8             ;LL1:
-0099 C3              123 +1         clr     C
-009A 33              124 +1         rlc     A
-VYTAH/TESi                                                                                                   PAGE 3
+                      49            djnz    R0, $-2;LL1
+                      50    ENDM
+                      51    
+                      52    NIZSIE_KABINA  MACRO POSCH, PRIVOLAVACE
+                      53            mov     A, #5
+                      54            clr     C
+                      55            subb    A, #&POSCH
+                      56            mov     R0, A
+                      57            mov     A, PRIVOLAVACE
+                      58            anl     A, #00011110b
+                      59            clr     C
+                      60            rlc     A
+                      61            clr     C
+                      62            rlc     A
+                      63            clr     C
+                      64            rlc     A
+                      65    ;LL1   
+                      66            clr     C
+                      67            rlc     A
+                      68            djnz    R0, $-2;LL1
+                      69    ENDM
+                      70    
+                      71    LCJNE   MACRO   OP1, OP2, NAVESTIE
+                      72            cjne    OP1, OP2, $+6
+                      73            jmp     $+6
+                      74            ljmp    NAVESTIE
+                      75            nop
+                      76    ENDM
+                      77    
+                      78    _BP_    MACRO 
+                      79            clr     P3.3
+                      80            setb    EX1
+                      81            nop
+                      82            nop
+                      83    ENDM
+                      84    
+                      85    
+0033                  86            org     0033h           ; od tejto adresy sa zacina kod programu
+                      87                                    ; testovacie hodnoty
+                      88                                    
+                      89                                    
+0033 00               90            nop
+0034 00               91            nop
+0035 00               92            nop
+                      93 +1         LCJNE A, #2, LL1
+0036 B40203           94 +1         cjne    A, #2, $+6
+0039 02003F           95 +1         jmp     $+6
+003C 020145           96 +1         ljmp    LL1
+003F 00               97 +1         nop
+0040 00               99            nop
+0041 00              100            nop
+0042 00              101            nop                         
+                     102                                    
+                     103 +1         VYSSIE_KABINA 2, #10000000b
+0043 7480            104 +1         mov     A, #10000000b
+0045 541E            105 +1         anl     A, #00011110b
+0047 C3              106 +1         clr     C
+0048 13              107 +1         rrc     A
+VYTAH/TES                                                                                                     PAGE 3
 
-009B C3              125 +1         clr     C
-009C 33              126 +1         rlc     A
-009D D8F8            127 +1         djnz    R0, $-6
-                     128 +1                                 ; LL2:
-009F E8              129 +1         mov     A, R0   
+                     108 +1 ;LL1    
+0049 7802            109 +1         mov     R0, #2
+004B C3              110 +1         clr     C
+004C 13              111 +1         rrc     A
+004D D8FC            112 +1         djnz    R0, $-2;LL1
+                     114 +1         _BP_
+004F C2B3            115 +1         clr     P3.3
+0051 D2AA            116 +1         setb    EX1
+0053 00              117 +1         nop
+0054 00              118 +1         nop
+                     120 +1         VYSSIE_KABINA 1, #10100010b
+0055 74A2            121 +1         mov     A, #10100010b
+0057 541E            122 +1         anl     A, #00011110b
+0059 C3              123 +1         clr     C
+005A 13              124 +1         rrc     A
+                     125 +1 ;LL1    
+005B 7801            126 +1         mov     R0, #1
+005D C3              127 +1         clr     C
+005E 13              128 +1         rrc     A
+005F D8FC            129 +1         djnz    R0, $-2;LL1
                      131 +1         _BP_
-00A0 C2B3            132 +1         clr     P3.3
-00A2 D2AA            133 +1         setb    EX1
-00A4 00              134 +1         nop
-00A5 00              135 +1         nop
-                     137 +1         NAJNIZSIE #01010110b
-00A6 7456            138 +1         mov     A, #01010110b
-00A8 C3              139 +1         clr     C;
-00A9 33              140 +1         rlc     A
-00AA 547E            141 +1         anl     A, #01111110b
-00AC 7805            142 +1         mov     R0, #05
-00AE 6006            143 +1         jz      $+8             ;LL1:
-00B0 C3              144 +1         clr     C
-00B1 33              145 +1         rlc     A
-00B2 C3              146 +1         clr     C
-00B3 33              147 +1         rlc     A
-00B4 D8F8            148 +1         djnz    R0, $-6
-                     149 +1                                 ; LL2:
-00B6 E8              150 +1         mov     A, R0   
-                     152 +1         _BP_
-00B7 C2B3            153 +1         clr     P3.3
-00B9 D2AA            154 +1         setb    EX1
-00BB 00              155 +1         nop
-00BC 00              156 +1         nop
-                     158    
-                     159            
-                     160            end
+0061 C2B3            132 +1         clr     P3.3
+0063 D2AA            133 +1         setb    EX1
+0065 00              134 +1         nop
+0066 00              135 +1         nop
+                     137 +1         VYSSIE_KABINA 1, #10000100b
+0067 7484            138 +1         mov     A, #10000100b
+0069 541E            139 +1         anl     A, #00011110b
+006B C3              140 +1         clr     C
+006C 13              141 +1         rrc     A
+                     142 +1 ;LL1    
+006D 7801            143 +1         mov     R0, #1
+006F C3              144 +1         clr     C
+0070 13              145 +1         rrc     A
+0071 D8FC            146 +1         djnz    R0, $-2;LL1
+                     148 +1         _BP_
+0073 C2B3            149 +1         clr     P3.3
+0075 D2AA            150 +1         setb    EX1
+0077 00              151 +1         nop
+0078 00              152 +1         nop
+                     154 +1         VYSSIE_KABINA 2, #10001001b
+0079 7489            155 +1         mov     A, #10001001b
+007B 541E            156 +1         anl     A, #00011110b
+007D C3              157 +1         clr     C
+007E 13              158 +1         rrc     A
+                     159 +1 ;LL1    
+007F 7802            160 +1         mov     R0, #2
+0081 C3              161 +1         clr     C
+0082 13              162 +1         rrc     A
+0083 D8FC            163 +1         djnz    R0, $-2;LL1
+                     165 +1         _BP_
+0085 C2B3            166 +1         clr     P3.3
+0087 D2AA            167 +1         setb    EX1
+0089 00              168 +1         nop
+008A 00              169 +1         nop
+                     171 +1         VYSSIE_KABINA 3, #10010100b
+008B 7494            172 +1         mov     A, #10010100b
+008D 541E            173 +1         anl     A, #00011110b
+VYTAH/TES]                                                                                                   PAGE 4
+
+008F C3              174 +1         clr     C
+0090 13              175 +1         rrc     A
+                     176 +1 ;LL1    
+0091 7803            177 +1         mov     R0, #3
+0093 C3              178 +1         clr     C
+0094 13              179 +1         rrc     A
+0095 D8FC            180 +1         djnz    R0, $-2;LL1
+                     182 +1         _BP_
+0097 C2B3            183 +1         clr     P3.3
+0099 D2AA            184 +1         setb    EX1
+009B 00              185 +1         nop
+009C 00              186 +1         nop
+                     188 +1         VYSSIE_KABINA 3, #01000110b
+009D 7446            189 +1         mov     A, #01000110b
+009F 541E            190 +1         anl     A, #00011110b
+00A1 C3              191 +1         clr     C
+00A2 13              192 +1         rrc     A
+                     193 +1 ;LL1    
+00A3 7803            194 +1         mov     R0, #3
+00A5 C3              195 +1         clr     C
+00A6 13              196 +1         rrc     A
+00A7 D8FC            197 +1         djnz    R0, $-2;LL1
+                     199 +1         _BP_
+00A9 C2B3            200 +1         clr     P3.3
+00AB D2AA            201 +1         setb    EX1
+00AD 00              202 +1         nop
+00AE 00              203 +1         nop
+                     205            
+                     206 +1         NIZSIE_KABINA 3, #10000000b
+00AF 7405            207 +1         mov     A, #5
+00B1 C3              208 +1         clr     C
+00B2 9403            209 +1         subb    A, #3
+00B4 F8              210 +1         mov     R0, A
+00B5 7480            211 +1         mov     A, #10000000b
+00B7 541E            212 +1         anl     A, #00011110b
+00B9 C3              213 +1         clr     C
+00BA 33              214 +1         rlc     A
+00BB C3              215 +1         clr     C
+00BC 33              216 +1         rlc     A
+00BD C3              217 +1         clr     C
+00BE 33              218 +1         rlc     A
+                     219 +1 ;LL1   
+00BF C3              220 +1         clr     C
+00C0 33              221 +1         rlc     A
+00C1 D8FC            222 +1         djnz    R0, $-2;LL1
+                     224 +1         _BP_
+00C3 C2B3            225 +1         clr     P3.3
+00C5 D2AA            226 +1         setb    EX1
+00C7 00              227 +1         nop
+00C8 00              228 +1         nop
+                     230 +1         NIZSIE_KABINA 2, #10100010b
+00C9 7405            231 +1         mov     A, #5
+00CB C3              232 +1         clr     C
+00CC 9402            233 +1         subb    A, #2
+00CE F8              234 +1         mov     R0, A
+00CF 74A2            235 +1         mov     A, #10100010b
+00D1 541E            236 +1         anl     A, #00011110b
+00D3 C3              237 +1         clr     C
+VYTAH/TES"                                                                                                   PAGE 5
+
+00D4 33              238 +1         rlc     A
+00D5 C3              239 +1         clr     C
+00D6 33              240 +1         rlc     A
+00D7 C3              241 +1         clr     C
+00D8 33              242 +1         rlc     A
+                     243 +1 ;LL1   
+00D9 C3              244 +1         clr     C
+00DA 33              245 +1         rlc     A
+00DB D8FC            246 +1         djnz    R0, $-2;LL1
+                     248 +1         _BP_
+00DD C2B3            249 +1         clr     P3.3
+00DF D2AA            250 +1         setb    EX1
+00E1 00              251 +1         nop
+00E2 00              252 +1         nop
+                     254 +1         NIZSIE_KABINA 2, #10000100b
+00E3 7405            255 +1         mov     A, #5
+00E5 C3              256 +1         clr     C
+00E6 9402            257 +1         subb    A, #2
+00E8 F8              258 +1         mov     R0, A
+00E9 7484            259 +1         mov     A, #10000100b
+00EB 541E            260 +1         anl     A, #00011110b
+00ED C3              261 +1         clr     C
+00EE 33              262 +1         rlc     A
+00EF C3              263 +1         clr     C
+00F0 33              264 +1         rlc     A
+00F1 C3              265 +1         clr     C
+00F2 33              266 +1         rlc     A
+                     267 +1 ;LL1   
+00F3 C3              268 +1         clr     C
+00F4 33              269 +1         rlc     A
+00F5 D8FC            270 +1         djnz    R0, $-2;LL1
+                     272 +1         _BP_
+00F7 C2B3            273 +1         clr     P3.3
+00F9 D2AA            274 +1         setb    EX1
+00FB 00              275 +1         nop
+00FC 00              276 +1         nop
+                     278 +1         NIZSIE_KABINA 4, #10001001b
+00FD 7405            279 +1         mov     A, #5
+00FF C3              280 +1         clr     C
+0100 9404            281 +1         subb    A, #4
+0102 F8              282 +1         mov     R0, A
+0103 7489            283 +1         mov     A, #10001001b
+0105 541E            284 +1         anl     A, #00011110b
+0107 C3              285 +1         clr     C
+0108 33              286 +1         rlc     A
+0109 C3              287 +1         clr     C
+010A 33              288 +1         rlc     A
+010B C3              289 +1         clr     C
+010C 33              290 +1         rlc     A
+                     291 +1 ;LL1   
+010D C3              292 +1         clr     C
+010E 33              293 +1         rlc     A
+010F D8FC            294 +1         djnz    R0, $-2;LL1
+                     296 +1         _BP_
+0111 C2B3            297 +1         clr     P3.3
+0113 D2AA            298 +1         setb    EX1
+0115 00              299 +1         nop
+0116 00              300 +1         nop
+VYTAH/TESd                                                                                                   PAGE 6
+
+                     302 +1         NIZSIE_KABINA 2, #10011110b
+0117 7405            303 +1         mov     A, #5
+0119 C3              304 +1         clr     C
+011A 9402            305 +1         subb    A, #2
+011C F8              306 +1         mov     R0, A
+011D 749E            307 +1         mov     A, #10011110b
+011F 541E            308 +1         anl     A, #00011110b
+0121 C3              309 +1         clr     C
+0122 33              310 +1         rlc     A
+0123 C3              311 +1         clr     C
+0124 33              312 +1         rlc     A
+0125 C3              313 +1         clr     C
+0126 33              314 +1         rlc     A
+                     315 +1 ;LL1   
+0127 C3              316 +1         clr     C
+0128 33              317 +1         rlc     A
+0129 D8FC            318 +1         djnz    R0, $-2;LL1
+                     320 +1         _BP_
+012B C2B3            321 +1         clr     P3.3
+012D D2AA            322 +1         setb    EX1
+012F 00              323 +1         nop
+0130 00              324 +1         nop
+                     326 +1         NIZSIE_KABINA 1, #01010110b
+0131 7405            327 +1         mov     A, #5
+0133 C3              328 +1         clr     C
+0134 9401            329 +1         subb    A, #1
+0136 F8              330 +1         mov     R0, A
+0137 7456            331 +1         mov     A, #01010110b
+0139 541E            332 +1         anl     A, #00011110b
+013B C3              333 +1         clr     C
+013C 33              334 +1         rlc     A
+013D C3              335 +1         clr     C
+013E 33              336 +1         rlc     A
+013F C3              337 +1         clr     C
+0140 33              338 +1         rlc     A
+                     339 +1 ;LL1   
+0141 C3              340 +1         clr     C
+0142 33              341 +1         rlc     A
+0143 D8FC            342 +1         djnz    R0, $-2;LL1
+                     344 +1 LL1:        _BP_
+0145 C2B3            345 +1         clr     P3.3
+0147 D2AA            346 +1         setb    EX1
+0149 00              347 +1         nop
+014A 00              348 +1         nop
+                     350    
+                     351            
+                     352            end
 
 VERSION 1.2h ASSEMBLY COMPLETE, 0 ERRORS FOUND
-VYTAH/TES                                                                                                     PAGE 4
+VYTAH/TES                                                                                                     PAGE 7
 
 EX1. . . . . . . . . . . . . . .  B ADDR  00AAH  PREDEFINED  
+LL1. . . . . . . . . . . . . . .  C ADDR  0145H  
 P3 . . . . . . . . . . . . . . .  D ADDR  00B0H  PREDEFINED  
