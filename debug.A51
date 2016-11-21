@@ -302,10 +302,17 @@ UP1_MB2:
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;   
         ZAKMITC MB2             ; Pockame, kym z nej odideme
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00000100b ;-;
-        jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1
-        setb    SLOW            ;       Ak ano, spomalme
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00000100b ;-;
+;        jz      UP1_MB1       ;-;       Ak nie, chod do stavu UP1_MB1        
+        ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
+        jnz     U1_MB2C       ;-; Ak ano, zastav
+        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi? (potom stojime urcite)
+        LCJNE   A, #2, UP1_MB1  ; |   ak nie, nezastavujeme 
+        VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      U1_MB2C         ; |   ak neni zastavujem         
+        jmp     UP1_MB1          ; |   inak nezastavim        
+U1_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;         
         jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
@@ -413,10 +420,17 @@ UP2_MB2:
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
         ZAKMITC MB2             ; Pockame, kym z nej odideme
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00001000b ;-;
-        jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
-        setb    SLOW            ;       Ak ano, spomalme
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00001000b ;-;
+;        jz      UP2_MB1       ;-;       Ak nie, chod do stavu UP2_MB1
+        ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+        jnz     U2_MB2C       ;-; Ak ano, zastav
+        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #3, UP2_MB1  ; |   ak nie, nezastavujeme  
+        VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      U2_MB2C         ; |   ak neni zastavujem  
+        ljmp    UP2_MB1         ; |   inak nezastavim
+U2_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
@@ -458,9 +472,9 @@ DOWN2_MB2:
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
         ZAKMITC MB2             ; Pockame, kym z nej odideme
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00000010b ;-;
-        jz      DOWN2_MB1     ;-;       Ak nie, chod do stavu DOWN2_MB1
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00000010b ;-;
+;        jz      DOWN2_MB1     ;-;       Ak nie, chod do stavu DOWN2_MB1
         setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
@@ -562,9 +576,9 @@ UP3_MB2:
         setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
         ZAKMITC MB2             ; Pockame, kym z nej odideme 
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00010000b ;-;
-        jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00010000b ;-;
+;        jz      UP3_MB1       ;-;       Ak nie, chod do stavu UP3_MB1
         setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
@@ -599,10 +613,17 @@ DOWN3_MB2:
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
         ZAKMITC MB2             ; Pockame, kym z nej odideme
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00000100b ;-;
-        jz      DOWN3_MB1     ;-;       Ak nie, chod do stavu DOWN3_MB1
-        setb    SLOW            ;       Ak ano, spomalme
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00000100b ;-;
+;        jz      DOWN3_MB1     ;-;       Ak nie, chod do stavu DOWN3_MB1
+        ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+        jnz     D3_MB2C         ; Ak ano, zastav
+        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #2, DOWN3_MB1; |   ak nie, nezastavujeme  
+        NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      D3_MB2C         ; |   ak neni zastavujem                  
+        ljmp    DOWN3_MB1       ;-; |        
+D3_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
@@ -666,10 +687,17 @@ DOWN4_MB2:
         setb    LEDD            ; Ak ano, rozsviet LEDku, ze mame druhu MB2
         lcall   WRITEPORTS      ;
         ZAKMITC MB2             ; Pockame, kym z nej odideme
-        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
-        anl     A, #00001000b ;-;
-        jz      DOWN4_MB1     ;-;       Ak nie, chod do stavu DOWN4_MB1
-        setb    SLOW            ;       Ak ano, spomalme
+;        mov     A, INPORTA      ; Chceme tu spomalit? - je najblizsie poschodie zvolene?
+;        anl     A, #00001000b ;-;
+;        jz      DOWN4_MB1     ;-;       Ak nie, chod do stavu DOWN4_MB1
+        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
+        jnz     D4_MB2C       ;-; Ak ano, zastav
+        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+        LCJNE   A, #3, DOWN4_MB1; |   ak nie, nezastavujeme  
+        NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+        jz      D4_MB2C         ; |   ak neni zastavujem          
+        ljmp    DOWN4_MB1       ;-; |       
+D4_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
