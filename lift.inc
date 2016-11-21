@@ -99,7 +99,7 @@ PO4             bit     OUTPORTC.5
 LEDD            bit     OUTPORTC.6
 LEDU            bit     OUTPORTC.7
 
-CANGO           bit     CTRLREG.0
+STOPPED         bit     CTRLREG.0
 DOORCLSDold     bit     CTRLREG.1
 UPold           bit     CTRLREG.2
 DOWNold         bit     CTRLREG.3

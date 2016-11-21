@@ -66,11 +66,11 @@ ZASTAV  MACRO  C_POSCH, SMER
                                         ; Chceme tu zastavit? - je toto poschodie zvolene? 
         clr     C                       ; | Idem robit cachre-machre s Carry bitom
         mov     A, #0h                  ; | Aj Acc potrebujem prazdny
-        orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine?
         orl     C, PI&C_POSCH&SMER      ; | Mam v tomto smere stlacene tlacidlo v sachte?
-        anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim) 
+        anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim)
+        orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine? 
         orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
-        ;mov     A, bmSmerPI1U
+        orl     C, STOPPED              ; | a bolo stlacene tlacidlo STOP? (Ak ano tak stojim urcite)
         addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
 ENDM
 
@@ -150,8 +150,6 @@ POLOHA_LED  MACRO  POLOHA
         lcall   WRITEPORTS
 ENDM
 
-FLOORREQ        data    36h
-
 ; hodiny oscilatora v emulatore treba dat na ext a nastavit 11.0592MHz
 TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunikacie
                                 ; hodnota 250 znamena prenosovu rychlost 4800 baud pri oscilatore 11.0592MHz
@@ -203,6 +201,7 @@ RESET:
         mov     OUTPORTB, #(bmFLED1 or bmFLED2 or bmFLED3 or bmFLED4)
         mov     OUTPORTC, #(bmPO1 or bmPO2D or bmPO2U or bmPO3D or bmPO3U or bmPO4 or bmLEDD or bmLEDU)
         setb    KS
+        clr     STOPPED
         call    WRITEPORTS          ; zapis novu informaciu
 ;;;;;;;;
 
@@ -271,6 +270,7 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO1          ;-; vynulovanie volby poschodia na ktorom stojim
         clr     PO1             ;
         lcall   WRITEPORTS      ;
+        jb      DPK, F1S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
         anl     A, #00011100b ;-;
         jnz     F1OK          ;-; ak ano, podme na to
@@ -321,8 +321,9 @@ UP1_MB1:
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
-        
+
         ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
+        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
         jnz     U1_MB1C       ;-; Ak ano, zastav
         NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi? (potom stojime urcite)
         LCJNE   A, #2, UP2      ; |   ak nie, nezastavujeme 
@@ -346,7 +347,7 @@ F2S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PO2U            ;
         clr     PO2D            ;
         lcall   WRITEPORTS      ;
-        ;_BP_
+        jb      DPK, F2S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     R1, #11111000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
         mov     R2, #11111000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
         jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
@@ -441,6 +442,7 @@ UP2_MB1:
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
         
         ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
         jnz     U2_MB1C       ;-; Ak ano, zastav
         NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi z kabiny? (potom stojime urcite)
         LCJNE   A, #3, UP3      ; |   ak nie, nezastavujeme  
@@ -484,7 +486,8 @@ DOWN2_MB1:
         jnb     SKRD, D2_MB1C   ; Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
         jnb     MB1, D2_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         jmp     DOWN2_MB1       ; Ak sme nechytili ani jednu clonku, opakujeme
-D2_MB1C:clr     DOWN            ; zastav motor
+D2_MB1C:clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+        clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
@@ -502,7 +505,7 @@ F3S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PO3U            ;
         clr     PO3D            ;
         lcall   WRITEPORTS      ;
-       ;_BP_
+        jb      DPK, F3S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     R1, #11110000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
         mov     R2, #11100000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
         jb      UPOld, F3OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
@@ -588,7 +591,8 @@ UP3_MB1:
         jnb     SKRH, U3_MB1C  ;  Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
         jnb     MB1, U3_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         jmp     UP3_MB1         ; Ak sme nechytili ani jednu clonku, opakujeme. 
-U3_MB1C:clr     UP              ; zastav motor
+U3_MB1C:clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+        clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
@@ -633,6 +637,7 @@ DOWN3_MB1:
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
         ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
         jnz     D3_MB1C         ; Ak ano, zastav
         NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
         LCJNE   A, #2, DOWN2    ; |   ak nie, nezastavujeme  
@@ -656,6 +661,7 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PKO4          ;-; vynulovanie volby poschodia na ktorom stojim
         clr     PO4            ;
         lcall   WRITEPORTS      ;
+        jb      DPK, F4S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco menej ako poschodie na ktorom stojim (Kabina)
         anl     A, #00001110b ;-;
         jnz     F4OK          ;-; ak ano, ideme na to
@@ -706,7 +712,8 @@ DOWN4_MB1:
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
-        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
+        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril 
         jnz     D4_MB1C       ;-; Ak ano, zastav
         NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
         LCJNE   A, #3, DOWN3    ; |   ak nie, nezastavujeme  
@@ -789,6 +796,29 @@ TIME4:  djnz    R1,TIME4        ; 43*2
         
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; STOP
+; osetri stlacenie tlacidla STOP
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+STOP:
+        setb    STOPPED
+        clr     FAST
+        clr     SLOW
+        mov     A, #11100001b
+        anl     OUTPORTA, A 
+        lcall   WRITEPORTS
+        
+        lcall   WAITFORTIMER
+STOPC:  lcall   READPORTS1
+        mov     A, INPORTA
+        anl     A, #00011110b
+        jz      STOPC     
+        
+        setb    SLOW
+        lcall   WRITEPORTS
+        ret        
+        
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; DELAY
 ; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
 ; bude timer)
@@ -798,19 +828,49 @@ WAITFORTIMER:
 DEL1:   lcall   TIME10MS
         djnz    R3, DEL1
         ret
-
+        
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; WAITFORTIMER
-; Pocka na stlacenie tlacidla na 1. poschodi  - signal PO1 (v buducnosti to 
-; bude timer)
+; READPORTS1
+; precita nove hodnoty na portoch
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-WAITFORTIMER2:
-        setb    PO3U                        ; rozsvieti indikator cakania (poschodie 4)
-        lcall   WRITEPORTS                  ;
-WAIT:   lcall   READPORTS                   ; 
-        jnb     PI3D, WAITFORTIMER          ; ak nebolo stlacene tlacidlo PO1, cakaj 
-        clr     PO3U                         ; zhasne indikator cakania (poschodie 4)
-        lcall   WRITEPORTS
+READPORTS1:
+        mov     p2, #i8255INA       ; citaj data z portu A
+        mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
+        clr     RDNOT
+        nop
+        nop
+        nop
+        nop
+        mov     INPORTA, p0         ; uloz informaciu z datovej zbernice 
+        setb    RDNOT
+        
+        mov     p2, #i8255INB       ; citaj data z portu B
+        mov     p0, #(bmMB1I or bmMB2I or bmSKRHI or bmSKRHD or bmDPI or bmDPKI or bmDPZKI)
+        clr     RDNOT
+        nop
+        nop
+        nop
+        nop
+        mov     INPORTB, p0         ; uloz informaciu z datovej zbernice 
+        setb    RDNOT
+
+        mov     p2, #i8255INC       ; citaj data z portu C
+        mov     p0, #(bmPI1 or bmPI2D or bmPI2U or bmPI3D or bmPI3U or bmPI4)
+        clr     RDNOT
+        nop
+        nop
+        nop
+        nop
+        mov     INPORTC, p0         ; uloz informaciu z datovej zbernice 
+        setb    RDNOT
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
         ret
 
 
@@ -856,6 +916,14 @@ READPORTS:
         nop
         nop
         nop
+        
+        jnb     DPK, READPORTS_C1
+        clr     FAST
+        setb    SLOW
+READPORTS_C1:         
+        jb      STOPNOT, READPORTS_C
+        lcall   STOP
+READPORTS_C:        
         mov     A, INPORTA
         anl     A, #00011110b
         orl     OUTPORTA, A
