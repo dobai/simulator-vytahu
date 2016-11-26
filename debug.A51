@@ -56,7 +56,7 @@ LCJNE   MACRO   OP1, OP2, NAVESTIE
 ENDM
 
 ZAKMITC MACRO   TYPCLONKY
-        lcall   TIME10MS        ; pockame 10 ms kym sa hodnota ustali (xe som na clonke)
+        lcall   TIME10MS        ; pockame 10 ms kym sa hodnota ustali (ze som na clonke)
         lcall   READPORTS       ; Uz sme z tej clonky prec?
         jnb     TYPCLONKY, $-3  ; 
         lcall   TIME10MS        ; pockame 10 ms  kym sa hodnota ustali (ze sme z nej naozaj zliezli)
@@ -157,8 +157,12 @@ TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby serio
 ;osetrenie vektorov preruseni
         org     0000h           ; adresa odkial startuje program po resete
         ljmp    START           ; skok na zaciatok kodu programu
+        
+        ;org     000Bh           ; v tejto casti pamati je vektor prerusenia
+        ;ljmp    INT_TIMER0      ; pre citac T0
               
         org     0033h           ; od tejto adresy sa zacina kod programu
+        
 START:
 RESET:  
         ; riadiace signaly do pasivnej urovne 
@@ -191,7 +195,43 @@ RESET:
         nop
         setb    WRNOT
         
-        _BP_
+        ;_BP_
+        
+        ;-----------------------
+        ; Prerusenia
+        ;----------------------- 
+        ;clr     TR1                 ; zastavi sa citac T1
+        ;clr     TR0                 ; a tiez citac T0
+        ;mov     SCON,#01010010b     ; nastavenie registra SCON
+        ;                            ; mod 1 (8b UART), SM2=0 (jednoprocesorovy system)
+        ;                            ; REN=1, 0, 0, TI=1 (vysielaci register je prazdny)
+        ;                            ; RI=0 (prijimaci register - nebol prijaty znak)
+        ;mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu
+        ;mov     TMOD,#00100001b     ; nastavenie TMOD registra
+        ;                            ; T1: mod 2 - po preteceni sa TL nastavi na hodnotu TH
+        ;                            ; GATE=0 (programove riadenie casovaca)
+        ;                            ; C/T#=0 interne hodiny/12
+        ;                            ; T0: mod 1 - 16 bitove pocitadlo
+        ;                            ; GATE=0 (programove riadenie casovaca)
+        ;                            ; C/T#=0 interne hodiny/12
+        ;mov     PCON,#00000000b     ; najvyssi bit musi byt 0, aby sa nezdvojnasobila prenosova rychlost seriovej linky
+        ;mov     TL1,#TIMERCONST     ; inicializacia casovaca T1
+        ;mov     TH1,#TIMERCONST     ; 
+        ;mov     TL0, #0D2h           ; inicializacia casovaca T0 65409,92(- 57600 = 0e100h - to bolo)
+        ;mov     TH0, #0FFh
+
+        ;setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
+        ;_BP_
+
+;       ;setb    EX0                 ; prerusenie INT0  - ostava zakazane, signal STOP osetrime priamo v hlavnej slucke
+;       ;setb    ES                  ; prerusenie seriovej linky teraz nevyuzivame
+        ;setb    ET0                 ; povolime prerusenia od casovaca T0
+        ;setb    TR0
+        ;setb    EA                  ; spust cely prerusovaci mechanizmus
+        ;-----------------------
+        ; Prerusenia
+        ;-----------------------
+        
 
         ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
         mov     INPORTA, #0
@@ -217,6 +257,7 @@ RESET:
 
 CALIB:
         ;kalibracia vytahu podla dolnej porovnavacej clonky
+        ;setb    TR0
         lcall   READPORTS                   ; precitaj, co je na portoch
         jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koniec
         setb    DOWN                        ; inak pod dole
@@ -240,6 +281,7 @@ CALIBEND2:
         clr     UP                          ; 
         setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
+        ;clr     TR0
 ;        _BP_
 MAIN:
 
@@ -729,51 +771,110 @@ D4_MB1C:clr     DOWN            ; zastav motor
                 
   
 ERR_1SPOM_C: 
-        clr     UP              ; zastav motor
-        clr     DOWN            ; 
-        lcall   WRITEPORTS      ; 
-        _BP_
-        nop
-        nop 
+        ;clr     UP              ; zastav motor
+        ;clr     DOWN            ; 
+        ;lcall   WRITEPORTS      ; 
+        ;_BP_
+        ;nop
+        ;nop 
+        ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
+        ljmp    ERROR1         
         
 ERR_2SPOM_C: 
-        clr     UP              ; zastav motor
-        clr     DOWN            ; 
-        lcall   WRITEPORTS      ; 
-        _BP_
-        nop
-        nop 
+        ;clr     UP              ; zastav motor
+        ;clr     DOWN            ; 
+        ;lcall   WRITEPORTS      ; 
+        ;_BP_
+        ;nop
+        ;nop
+        ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
+        ljmp    ERROR1 
         
 ERR_ZAST_C: 
-        clr     UP              ; zastav motor
-        clr     DOWN            ; 
-        lcall   WRITEPORTS      ; 
+        ;clr     UP              ; zastav motor
+        ;clr     DOWN            ; 
+        ;lcall   WRITEPORTS      ; 
+        ;_BP_
+        ;nop
+        ;nop
+        ;lcall   READPORTS
+        ;clr     FAST
+        ;clr     SLOW
         _BP_
-        nop
-        nop 
+        ljmp    ERROR1  
         
 ERR_SKRD: 
-        clr     UP              ; zastav motor
-        clr     DOWN            ; 
-        lcall   WRITEPORTS      ; 
-        _BP_
-        nop
-        nop    
+        ;clr     UP              ; zastav motor
+        ;clr     DOWN            ; 
+        ;lcall   WRITEPORTS      ; 
+        ;_BP_
+        ;nop
+        ;nop
+        ljmp    ERROR1    
         
 ERR_SKRH: 
-        clr     UP              ; zastav motor
+        ;clr     UP              ; zastav motor
+        ;clr     DOWN            ; 
+        ;lcall   WRITEPORTS      ; 
+        ;_BP_
+        ;nop
+        ;nop
+        ljmp    ERROR1 
+        
+ERROR1:         
+        setb    LEDU
+        setb    LEDD
+        clr     FAST
+        setb    SLOW
+        lcall   WRITEPORTS          
+ERROR1S:lcall   READPORTS       ; nacitanie dat
+        jnb     SKRH, ERROR1C   ; Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
+        jnb     SKRD, ERROR1C   ; Sme na dolnej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
+        jnb     MB1, ERROR1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
+        jmp     ERROR1S         ; Ak sme nechytili ani jednu clonku, opakujeme
+ERROR1C:clr     UP              ; zastav motor
         clr     DOWN            ; 
+        clr     FAST            ; 
+        clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
-        _BP_
-        nop
-        nop             
-                
+        lcall   WAITFORTIMER    ; simulacia TIMERu
+        jmp     ERROR2        ;-; a prejdi do stavu ERROR2 
+        
+ERROR2: lcall   READPORTS       ; nacitanie dat
+        jb      DP, ERROR2      ; uz vystupili vsetci ludia z kabiny?
+        jb      DPK, ERROR2     ; uz vystupili vsetci ludia z kabiny?
+        jb      DPZK, ERROR2    ; uz vystupili vsetci ludia z kabiny?
+        ljmp    START
+                       
                 
 ENDPROG:
         setb    KS
         call    WRITEPORTS                ; zapis novu informaciu
         _BP_
         ret
+        
+        
+;INT_TIMER0:
+;        push    ACC
+;        mov     A, R7  
+;        dec     R7               
+;        jnz     INT_TIMER0_END     
+;        mov     R7, #20h
+;        jb      LEDU, INT_TIMER0_CLEAR       
+;        setb    LEDU
+;        setb    LEDD
+;        jmp     INT_TIMER0_WRITE
+;INT_TIMER0_CLEAR:        
+;        ;clr     LEDU
+;        ;clr     LEDD
+;INT_TIMER0_WRITE: 
+;        lcall   WRITEPORTS
+;INT_TIMER0_END: 
+;        setb    LEDU
+;        lcall   WRITEPORTS       
+;        pop     ACC
+;        reti
+        
         
 ; rutina time delay 1 ms pre oscilator s frekvenciou 11.0592 MHz
 ; 1 instrukcia 2 takty? => 11.0592/2 = pocet instrukcii potrebnych na 1 sekundu
