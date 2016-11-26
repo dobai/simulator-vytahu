@@ -5,6 +5,8 @@
 ; Poriadne otestuj !!! 
 ; Umo+zni stlacat tlacidla aj ked bezi delay
 
+;Prerusenia pojdu, ale treba dat sakra pozor na zalohovanie veci!!!
+
 
 $MOD51
 $DEBUG
@@ -158,8 +160,8 @@ TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby serio
         org     0000h           ; adresa odkial startuje program po resete
         ljmp    START           ; skok na zaciatok kodu programu
         
-        ;org     000Bh           ; v tejto casti pamati je vektor prerusenia
-        ;ljmp    INT_TIMER0      ; pre citac T0
+        org     000Bh           ; v tejto casti pamati je vektor prerusenia
+        ljmp    INT_TIMER0      ; pre citac T0
               
         org     0033h           ; od tejto adresy sa zacina kod programu
         
@@ -228,6 +230,21 @@ RESET:
         ;setb    ET0                 ; povolime prerusenia od casovaca T0
         ;setb    TR0
         ;setb    EA                  ; spust cely prerusovaci mechanizmus
+        
+        mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu
+        mov     TMOD,#00010001b     ; nastavenie TMOD registra
+                                    ; T1: mod 1 - 16 bitove pocitadlo
+                                    ; GATE=0 (programove riadenie casovaca)
+                                    ; C/T#=0 interne hodiny/12
+                                    ; T0: mod 1 - 16 bitove pocitadlo
+                                    ; GATE=0 (programove riadenie casovaca)
+                                    ; C/T#=0 interne hodiny/12
+        mov     PCON,#00000000b     ; najvyssi bit musi byt 0, aby sa nezdvojnasobila prenosova rychlost seriovej linky
+        mov     TL0, #000h           ; inicializacia casovaca T0 - 57600 = 0e100h
+        mov     TH0, #04Ch
+        
+        setb    TR0
+        
         ;-----------------------
         ; Prerusenia
         ;-----------------------
@@ -254,15 +271,17 @@ RESET:
         mov     INPORTB, #0         
         mov     INPORTC, #0
         call    READPORTS           ; prvotne nacitanie udajov
-
+        _BP_
 CALIB:
         ;kalibracia vytahu podla dolnej porovnavacej clonky
-        ;setb    TR0
+        ;mov     R6, #20
+        ;setb    ET0
         lcall   READPORTS                   ; precitaj, co je na portoch
         jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koniec
         setb    DOWN                        ; inak pod dole
         setb    FAST                        ; a rychlo
         clr     SLOW                        ;
+        clr     UP
         lcall   WRITEPORTS                  ; zapis informaciu 
 CALIBLOOP:
         lcall   READPORTS                   ; 
@@ -281,7 +300,7 @@ CALIBEND2:
         clr     UP                          ; 
         setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
-        ;clr     TR0
+        ;clr     ET0
 ;        _BP_
 MAIN:
 
@@ -800,7 +819,7 @@ ERR_ZAST_C:
         ;lcall   READPORTS
         ;clr     FAST
         ;clr     SLOW
-        _BP_
+        ;_BP_
         ljmp    ERROR1  
         
 ERR_SKRD: 
@@ -853,6 +872,28 @@ ENDPROG:
         _BP_
         ret
         
+        
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; INT_TIMER0
+; Obsluha prerusenia timera 0
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;        
+INT_TIMER0:
+        push    ACC
+        mov     A, R5
+        dec     R5
+        jz      INT_TIMER0_MAIN    
+        sjmp    INT_TIMER0_END
+INT_TIMER0_MAIN:
+        mov     A, R6
+        mov     R5, A
+        cpl     LEDU
+        cpl     LEDD
+        lcall   WRITEPORTS  
+        
+INT_TIMER0_END:        
+        pop     ACC
+	reti 
         
 ;INT_TIMER0:
 ;        push    ACC

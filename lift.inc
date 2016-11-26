@@ -100,8 +100,8 @@ LEDD            bit     OUTPORTC.6
 LEDU            bit     OUTPORTC.7
 
 STOPPED         bit     CTRLREG.0
-DOORCLSDold     bit     CTRLREG.1
-UPold           bit     CTRLREG.2
+T0_OVERFLOW     bit     CTRLREG.1
+BLICK           bit     CTRLREG.2
 DOWNold         bit     CTRLREG.3
 FASTold         bit     CTRLREG.4
 SLOWold         bit     CTRLREG.5
