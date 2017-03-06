@@ -23,10 +23,6 @@ HIGHEST         data    32h
 STOPTIMER       data    33h
 OUTPORTBold     data    34h
 
-;----------------
-FLOORREQ        data    36h
-;----------------
-
 STOPNOT         bit     INPORTA.0
 PKI1            bit     INPORTA.1
 PKI2            bit     INPORTA.2
@@ -47,33 +43,12 @@ MB2old          bit     INPORTBold.2
 SKRHold         bit     INPORTBold.3
 SKRDold         bit     INPORTBold.4
 
-
-
-
-
-PI1             bit     INPORTC.0       
+PI1             bit     INPORTC.0
 PI2D            bit     INPORTC.1
 PI2U            bit     INPORTC.2
 PI3D            bit     INPORTC.3
 PI3U            bit     INPORTC.4
 PI4             bit     INPORTC.5
-
-
-;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
-; ****************************************************************************
-; INPORTA >  |       |       |DOORCLS| PKI4  | PKI3  | PKI2  | PKI1  |STOPNOT|
-; ----------------------------------------------------------------------------
-; INPORTB >  | DPK   | DPZK  | DP    | SKRD  | SKRH  | MB2   | MB1   |       |
-; ----------------------------------------------------------------------------
-; INPORTC >  |       |       | PI4   | PI3D  | PI3U  | PI2D  | PI2U  | PI1   |
-; ****************************************************************************
-; OUTPORTA > |       |       |       | PKO4  | PKO3  | PKO2  | PKO1  | KS    |
-; ----------------------------------------------------------------------------
-; OUTPORTB > | FLED4 | FLED3 | FLED2 | FLED1 | SLOW  | FAST  | DOWN  | UP    |
-; ----------------------------------------------------------------------------
-; OUTPORTC > | LEDU  | LEDD  | PO4   | PO3D  | PO3U  | PO2D  | PO2U  | PO1   |
-; ----------------------------------------------------------------------------
-
 
 KS              bit     OUTPORTA.0
 PKO1            bit     OUTPORTA.1
@@ -99,9 +74,9 @@ PO4             bit     OUTPORTC.5
 LEDD            bit     OUTPORTC.6
 LEDU            bit     OUTPORTC.7
 
-STOPPED         bit     CTRLREG.0
-T0_OVERFLOW     bit     CTRLREG.1
-BLICK           bit     CTRLREG.2
+CANGO           bit     CTRLREG.0
+DOORCLSDold     bit     CTRLREG.1
+UPold           bit     CTRLREG.2
 DOWNold         bit     CTRLREG.3
 FASTold         bit     CTRLREG.4
 SLOWold         bit     CTRLREG.5
@@ -164,18 +139,3 @@ bmPI3D            equ    00001000b
 bmPI3U            equ    00010000b
 bmPI4             equ    00100000b
 
-; Sachta - masky
-bmSmerPI1U            equ    00111110b
-bmSmerPI2D            equ    00000001b
-bmSmerPI2U            equ    00111000b
-bmSmerPI3D            equ    00000111b
-bmSmerPI3U            equ    00100000b
-bmSmerPI4D            equ    00011111b
-
-; Kabina - masky
-bmSmerPKI1U           equ    00011100b
-bmSmerPKI2D           equ    00000010b
-bmSmerPKI2U           equ    00011000b
-bmSmerPKI3D           equ    00000110b
-bmSmerPKI3U           equ    00010000b
-bmSmerPKI4D           equ    00001110b

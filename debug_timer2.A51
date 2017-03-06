@@ -64,16 +64,18 @@ ZAKMITC MACRO   TYPCLONKY
         lcall   TIME10MS        ; pockame 10 ms  kym sa hodnota ustali (ze sme z nej naozaj zliezli)
 ENDM
 
-ZASTAV  MACRO  C_POSCH, SMER
-                                        ; Chceme tu zastavit? - je toto poschodie zvolene? 
-        clr     C                       ; | Idem robit cachre-machre s Carry bitom
-        mov     A, #0h                  ; | Aj Acc potrebujem prazdny
-        orl     C, PI&C_POSCH&SMER      ; | Mam v tomto smere stlacene tlacidlo v sachte?
-        anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim)
-        orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine? 
-        orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
+ZASTAV  MACRO  C_POSCH, SMER            ; Makro vrati do ACC 1 ak na poschodi C_POSCH v smere SMER 
+                                        ; treba zastavit. V opacnom pripade vrati 0
+                                        ;     C_POSCH - cislo poschodia, pre ktore sa zistuje ci treba zastavit
+                                        ;     SMER - aktualny smer pohybu kabiny
+        clr     C                       ; | Vynulovanie Carry bitu a akumulatora
+        mov     A, #0h                  ; | 
+        orl     C, PI&C_POSCH&SMER      ; | Je v tomto smere stlacene tlacidlo v sachte?
+        anl     C, /DPZK                ; | Ak je plne zatazena kabina, na poschodi sa nestoji
+        orl     C, PKI&C_POSCH          ; | Je v tomto smere stlacene tlacidlo v kabine? 
+        orl     C, DPK                  ; | Ak je kabina pretazena, na poschodi sa stoji.
         orl     C, STOPPED              ; | a bolo stlacene tlacidlo STOP? (Ak ano tak stojim urcite)
-        addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
+        addc    A, #0h                  ; Do akumulatora sa vlozi hodnota vypocitana v predchadzajucich krokoch.
 ENDM
 
 NAJNIZSIE  MACRO
@@ -271,16 +273,17 @@ RESET:
         mov     INPORTB, #0         
         mov     INPORTC, #0
         call    READPORTS           ; prvotne nacitanie udajov
-
+        _BP_
 CALIB:
         ;kalibracia vytahu podla dolnej porovnavacej clonky
-        ;setb    TR0
+        ;mov     R6, #20
+        ;setb    ET0
         lcall   READPORTS                   ; precitaj, co je na portoch
         jnb     SKRD, CALIBEND              ; ak sme na dolnej porovnavacej clonke, tak koniec
         setb    DOWN                        ; inak pod dole
         setb    FAST                        ; a rychlo
         clr     SLOW                        ;
-        clr     UP                
+        clr     UP
         lcall   WRITEPORTS                  ; zapis informaciu 
 CALIBLOOP:
         lcall   READPORTS                   ; 
@@ -299,8 +302,8 @@ CALIBEND2:
         clr     UP                          ; 
         setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
-        ;clr     TR0
-        _BP_
+        ;clr     ET0
+;        _BP_
 MAIN:
 
 ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
@@ -319,13 +322,6 @@ MAIN:
 ; ****************************************************************************
 ; POSITION
 ; ****************************************************************************
-
-
-        _BP_
-        mov     R5, #0
-        mov     R6, #20
-        setb    ET0;
-        
 
 
 ;------------------------------------------------------------------------------- << 1. poschodie >>
@@ -379,7 +375,7 @@ UP1_MB2:
         VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      U1_MB2C         ; |   ak neni zastavujem         
         jmp     UP1_MB1          ; |   inak nezastavim        
-U1_MB2C: setb    SLOW            ;       Ak ano, spomalme
+U1_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;         
         jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
@@ -397,7 +393,7 @@ UP1_MB1:
         VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      U1_MB1C         ; |   ak neni zastavujem         
         ljmp    UP2             ; |   inak nezastavim        
-U1_MB1C: clr     UP              ; zastav motor
+U1_MB1C:clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj) 
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
@@ -498,7 +494,7 @@ UP2_MB2:
         VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      U2_MB2C         ; |   ak neni zastavujem  
         ljmp    UP2_MB1         ; |   inak nezastavim
-U2_MB2C: setb    SLOW            ;       Ak ano, spomalme
+U2_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
@@ -516,7 +512,7 @@ UP2_MB1:
         VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      U2_MB1C         ; |   ak neni zastavujem  
         ljmp    UP3             ; |   inak nezastavim
-U2_MB1C: clr     UP              ; zastav motor
+U2_MB1C:clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
@@ -553,7 +549,7 @@ DOWN2_MB1:
         jnb     SKRD, D2_MB1C   ; Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
         jnb     MB1, D2_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         jmp     DOWN2_MB1       ; Ak sme nechytili ani jednu clonku, opakujeme
-D2_MB1C: clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+D2_MB1C:clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
         clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
@@ -658,7 +654,7 @@ UP3_MB1:
         jnb     SKRH, U3_MB1C  ;  Sme na hornej porovnavacej clonke? (tu zastavujeme v kazdom pripade)
         jnb     MB1, U3_MB1C  ;-; Sme na zastavovacej clonke? (tu zastavujeme v kazdom pripade)
         jmp     UP3_MB1         ; Ak sme nechytili ani jednu clonku, opakujeme. 
-U3_MB1C: clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+U3_MB1C:clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
         clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
@@ -694,7 +690,7 @@ DOWN3_MB2:
         NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      D3_MB2C         ; |   ak neni zastavujem                  
         ljmp    DOWN3_MB1       ;-; |        
-D3_MB2C: setb    SLOW            ;       Ak ano, spomalme
+D3_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
@@ -711,7 +707,7 @@ DOWN3_MB1:
         NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      D3_MB1C         ; |   ak neni zastavujem                  
         ljmp    DOWN2         ;-; |        
-D3_MB1C: clr     DOWN            ; zastav motor
+D3_MB1C:clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
@@ -770,7 +766,7 @@ DOWN4_MB2:
         NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      D4_MB2C         ; |   ak neni zastavujem          
         ljmp    DOWN4_MB1       ;-; |       
-D4_MB2C: setb    SLOW            ;       Ak ano, spomalme
+D4_MB2C:setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
         jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
@@ -787,7 +783,7 @@ DOWN4_MB1:
         NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
         jz      D4_MB1C         ; |   ak neni zastavujem          
         ljmp    DOWN3         ;-; |       
-D4_MB1C: clr     DOWN            ; zastav motor
+D4_MB1C:clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
@@ -825,7 +821,7 @@ ERR_ZAST_C:
         ;lcall   READPORTS
         ;clr     FAST
         ;clr     SLOW
-        _BP_
+        ;_BP_
         ljmp    ERROR1  
         
 ERR_SKRD: 
@@ -881,17 +877,18 @@ ENDPROG:
         
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; INT_TIMER0
-; Obsluha prerusenia timera 0
+; INT_TIMER2
+; Obsluha prerusenia timera 2
+; Pracuje s prizbakmi VAL_T2, MAX_T2 a BLINK. Nastavuje priznak OVERFLOW_T2
+;      VAL_T2   Aktualny cyklus pocitadla 
+;      MAX_T2   Pocet cyklov po ktorych sa nastavi priznak OVERFLOW_T2 na 1
+;      BLINK    Ak je 1, pri kazdom preteceni zneguje hodnotu signalov 
+;               LEDU, LEDD }v buducnosti aj signaly poschodia, no na to treba 
+;               masku
+;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;        
 INT_TIMER0:
         push    ACC
-        push    P0
-        push    P1
-        push    P2
-        push    P3
-        ;push    OUTPORTC
-        
         mov     A, R5
         dec     R5
         jz      INT_TIMER0_MAIN    
@@ -901,46 +898,23 @@ INT_TIMER0_MAIN:
         mov     R5, A
         cpl     LEDU
         cpl     LEDD
+        lcall   WRITEPORTS  
         
-        mov     p0, OUTPORTC        ; a nakoniec port C
-        mov     p2, #i8255OUTC
-        clr     WRNOT
-        nop
-        nop
-        nop
-        nop
-        setb    WRNOT
-        
-        
-INT_TIMER0_END:
-        
-
-        ;pop     OUTPORTC
-        pop     P3
-        pop     P2
-        pop     P1
-        pop     P0        
+INT_TIMER0_END:        
         pop     ACC
 	reti 
         
-;INT_TIMER0:
-;        push    ACC
-;        mov     A, R7  
-;        dec     R7               
-;        jnz     INT_TIMER0_END     
-;        mov     R7, #20h
-;        jb      LEDU, INT_TIMER0_CLEAR       
-;        setb    LEDU
-;        setb    LEDD
-;        jmp     INT_TIMER0_WRITE
-;INT_TIMER0_CLEAR:        
-;        ;clr     LEDU
-;        ;clr     LEDD
-;INT_TIMER0_WRITE: 
-;        lcall   WRITEPORTS
-;INT_TIMER0_END: 
-;        setb    LEDU
-;        lcall   WRITEPORTS       
+;INT_TIMER2:
+;        push    ACC                           ; Zalohovanie hodnoty ACC
+;        dec     VAL_T2                        ; Mame dalsi cyklus, dekrementujeme
+;        mov     A, VAL_T2                     ; | Ak je pocitadlo cyklov na 0
+;        jnz     INT_TIMER0_END                ; |
+;        mov     VAL_T2, MAX_T2                ; | Vynuluj pocitadlo cyklov
+;        setb    OVERFLOW_T2                   ; | ...a nastav priznak OVERFLOW_T2
+;        jnb     BLINK, INT_TIMER0_END         ; | Ak je nastaveny priznak BLINK
+;        cpl     LEDU                          ; |  | Tak preblikni LED
+;        cpl     LEDD                          ; |  |
+;INT_TIMER0_END:                               ; Obnovenie hodnoty ACC
 ;        pop     ACC
 ;        reti
         
@@ -1004,8 +978,6 @@ DEL1:   lcall   TIME10MS
 ; precita nove hodnoty na portoch
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 READPORTS1:
-        clr     EA                  ;Treba zakazat prerusenia
-        
         mov     p2, #i8255INA       ; citaj data z portu A
         mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
         clr     RDNOT
@@ -1043,7 +1015,6 @@ READPORTS1:
         nop
         nop
         nop
-        setb    EA                 ;znovu spustime prerusenia
         ret
 
 
@@ -1052,11 +1023,13 @@ READPORTS1:
 ; precita nove hodnoty na portoch
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 READPORTS:
-        clr     EA                  ;Treba zakazat prerusenia
+        push    ACC
         
         mov     p2, #i8255INA       ; citaj data z portu A
         mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
         clr     RDNOT
+;        mov     A, #06              ; Oneskorenie 14 cyklov (2+2*6)
+;        djnz    A, $0               ; 1 cyklus > 1/(11059200/12)= 1,0850694444444444 uS 14 cyklov -> 15.19 uS = 15190 nS  -potrebujem 150
         nop
         nop
         nop
@@ -1091,8 +1064,6 @@ READPORTS:
         nop
         nop
         nop
-        setb    EA                 ;znovu spustime prerusenia
-        
         
         jnb     DPK, READPORTS_C1
         clr     FAST
@@ -1111,6 +1082,7 @@ READPORTS_C:
         call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
         
         
+        pop     ACC
         ret
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1118,8 +1090,6 @@ READPORTS_C:
 ; spravi zalohu vystupnych registrov a posle data von
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 WRITEPORTS:
-        clr     EA                  ;Treba zakazat prerusenia
-        
         mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
         mov     p2, #i8255OUTA
         clr     WRNOT
@@ -1154,7 +1124,6 @@ WRITEPORTS:
         nop
         nop
         nop
-        setb     EA                  ;Treba zakazat prerusenia
         ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

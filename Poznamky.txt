@@ -1,0 +1,71 @@
+
+6.3.2017  Poznamky k densnemu sedeniu:
+
+CHYBA! - stale blbne blikanie!!!  - uz nie. 
+Problem bol v tom, ze ja som pushol/popol aj port, ktory som menil. 
+Takze zmenu som sice zabilsal, ale okamzite mi ju prepisal writeports 
+(ktory sa vola z readports) v kazdej jednej blbej slucke. 
+
+Zabezpeèenie pomocou CFCSS - zabezpecime makrobloky.
+    - skoky do chybovych stavov neuvazujeme
+    - chybove stavy nebudu mat chceck - iba nastavia. 
+      Aj to iba vtedy ak sa zmeni smer pohybu. (vtedy nastavim natvrdo 
+      globalny priznak tak, aby "vyhovoval" pozmenenemu toku programu) 
+      
+Vypadok clonky vyriešime pomocou prerušenia. (Int1)
+
+
+TODO:
+
+  - prirobit stavy  UP/DOWNxSTOP
+  
+  - Spravit prerusenie na chybove stavy.  
+   Tam, kde rozpoznavam prerusenia, skocim /niekde/ na koniec bloku a tam 
+   nastavim typ chyby do nejakej premennej, cislo poschodia a smer do nejakej 
+   premennej (registra), potom vyvolam prerusenie a skocim na dalsi stav
+  (logicky nasledujuci). Pre stavy UP/DOWNxSTOP su to stavy  UP/DOWNx+-1 
+  
+   - Samotna obsluha prerusenia bude obsahovat
+        - oznacit aktualne poschodie ako chybne  (nastavim priznak.)
+        - rozblikat LEDky chybnych poschodi
+        - (casom mozno dalsie spracovanie - napr. inkrementaciu pocotadla danej chyby)
+        
+   - Potom treba dorobit:     
+        - nezastavovat na chybnom poschodi
+        - vynulovat oznacenie ako chybne, ked nacitam clonku 
+        
+   - Spravne nastavovat premenne poschodia a medziposchodia
+        - poschodie cislom pre Radvanyiho,
+        - medziposchodie v tvare H=(horne poschodie) L=(dolne poschodie) (asi NIE binarne)
+   
+  - Tlacidlo STOP:
+        Prerusenie -^-> STOP:
+        - nastaví príznak "stopnuty" (ak je kabina na poschodi tak nie)
+        - (Neskor pripadne zaloguje)
+        
+  - ReadPorts - ak je priznak "stopnuty", skoc do stavu STOP.
+        
+  - Stav STOP: (label kde skakat bude vyskladany   ABCD A-Up, B-DOWN, (ak ani jedno tak floor, ak obe tak neplatne) CD - poschodie)
+      - zisti, ci je na domnou z KABINY nieco privolane. 
+            * Ak ano, nastav Up na 1 a label: [A] na 1, CD na posch. 
+            * Inak nastav Down na 1 a label: [B] na 1, CD na posch.      .
+            
+      - zisti, ci je na domnou z POSCHODIA nieco privolane. 
+            * Ak ano, nastav Up na 1 a label: [A] na 1, CD na posch. 
+            * Inak nastav Down na 1 a label: [B] na 1, CD na posch. 
+      
+      - zisti, ci je v KABINE alebo na POSCHODI privolane jedno z medziposchodi
+            * Ak ano, vynuluj A a B a nastav POMALU rychlost.
+            
+      - Pockaj na MB1 a skoc na vytvoreny LABEL
+
+  - WATCHDOG zapnut uz pri RESETE, a nulovat vzdy pri ReadPorts.
+    (aby islo, musim mat vyhodene tvrde pauzy - alebo ZATIAL nulovat aj tam)
+    
+  - CFCSS - vypocitat pre MAKRObloky
+      - Pri STOP budem musiet vydolovat spravny priznak (ulozeny o 16 vyssie ako label;)
+      - pri SKRH a SKRD tiez. To necham ako skok, a v prislusnych stavoch nastavim spravny priznak a skocim (tak ako to robim teraz)
+      
+         
+
+
