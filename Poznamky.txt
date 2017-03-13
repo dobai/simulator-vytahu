@@ -3,7 +3,7 @@
 
 CHYBA! - stale blbne blikanie!!!  - uz nie. 
 Problem bol v tom, ze ja som pushol/popol aj port, ktory som menil. 
-Takze zmenu som sice zabilsal, ale okamzite mi ju prepisal writeports 
+Takze zmenu som sice zapilsal, ale okamzite mi ju prepisal writeports 
 (ktory sa vola z readports) v kazdej jednej blbej slucke. 
 
 Zabezpeèenie pomocou CFCSS - zabezpecime makrobloky.
@@ -17,7 +17,7 @@ Vypadok clonky vyriešime pomocou prerušenia. (Int1)
 
 TODO:
 
-  - prirobit stavy  UP/DOWNxSTOP
+  OK - prirobit stavy  UP/DOWNxSTOP
   
   - Spravit prerusenie na chybove stavy.  
    Tam, kde rozpoznavam prerusenia, skocim /niekde/ na koniec bloku a tam 
@@ -68,4 +68,12 @@ TODO:
       
          
 
+
+
+
+
+
+OTAZKY
+---------------------------------------------------------------------------
+Signal pretazenia - pride po druhej spomalovacej clonke - zastavit vytah? (Podla mna nie, lebo by mohla prist rovno na poschodi a trhnutie pri zastaveni by moho byt v pripade pretazenej kabiny nebezpecnejsie ako prejdenie celeho dalsieho poschodia.)
 

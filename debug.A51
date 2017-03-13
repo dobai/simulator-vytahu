@@ -3,7 +3,7 @@
 ; Dorob 3UP a 2 DOWN (tam kde stojis vzdy)
 ; Asi by bolo dobre premenovat PI1, PO1 a PI4 PO4 na alternativy s koncovkami U a D
 ; Poriadne otestuj !!! 
-; Umo+zni stlacat tlacidla aj ked bezi delay
+; Umozni stlacat tlacidla aj ked bezi delay
 
 ;Prerusenia pojdu, ale treba dat sakra pozor na zalohovanie veci!!!
 
@@ -231,8 +231,13 @@ RESET:
         ;setb    TR0
         ;setb    EA                  ; spust cely prerusovaci mechanizmus
         
+        clr     TR1                 ; zastavi sa citac T1
+        mov     SCON,#01010010b     ; nastavenie registra SCON
+                                    ; mod 1 (8b UART), SM2=0 (jednoprocesorovy system)
+                                    ; REN=1, 0, 0, TI=1 (vysielaci register je prazdny)
+                                    ; RI=0 (prijimaci register - nebol prijaty znak)
         mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu
-        mov     TMOD,#00010001b     ; nastavenie TMOD registra
+        mov     TMOD,#00100001b     ; nastavenie TMOD registra
                                     ; T1: mod 1 - 16 bitove pocitadlo
                                     ; GATE=0 (programove riadenie casovaca)
                                     ; C/T#=0 interne hodiny/12
@@ -240,10 +245,13 @@ RESET:
                                     ; GATE=0 (programove riadenie casovaca)
                                     ; C/T#=0 interne hodiny/12
         mov     PCON,#00000000b     ; najvyssi bit musi byt 0, aby sa nezdvojnasobila prenosova rychlost seriovej linky
+        mov     TL1,#TIMERCONST     ; inicializacia casovaca T1
+        mov     TH1,#TIMERCONST     ; 
         mov     TL0, #000h           ; inicializacia casovaca T0 - 57600 = 0e100h
         mov     TH0, #04Ch
         
         setb    TR0
+        setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
         
         ;-----------------------
         ; Prerusenia
@@ -271,6 +279,10 @@ RESET:
         mov     INPORTB, #0         
         mov     INPORTC, #0
         call    READPORTS           ; prvotne nacitanie udajov
+        
+        
+        mov     DPTR, #STR_INIT         ; vypis info 
+        lcall   DISPSTR                 ; o inicializacii       
 
 CALIB:
         ;kalibracia vytahu podla dolnej porovnavacej clonky
@@ -300,7 +312,9 @@ CALIBEND2:
         setb    FLED1
         lcall   WRITEPORTS                  ; zapis informaciu
         ;clr     TR0
-        _BP_
+        ;_BP_
+        mov     DPTR, #STR_INIT             ; vypis info o kalibracii
+        lcall   DISPSTR                     ;
 MAIN:
 
 ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
@@ -321,7 +335,7 @@ MAIN:
 ; ****************************************************************************
 
 
-        _BP_
+
         mov     R5, #0
         mov     R6, #20
         setb    ET0;
@@ -382,27 +396,38 @@ UP1_MB2:
 U1_MB2C: setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;         
-        jmp     UP1_MB1       ;-; a prejdi do stavu UP1_MB1 
+        jmp     UP1_STOP       ;-; a prejdi do stavu UP1_STOP 
 UP1_MB1:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP1_MB1  ;-; Sme na zastavovacej clonke?
 
-        ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
-        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
-        jnz     U1_MB1C       ;-; Ak ano, zastav
-        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi? (potom stojime urcite)
-        LCJNE   A, #2, UP2      ; |   ak nie, nezastavujeme 
-        VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
-        jz      U1_MB1C         ; |   ak neni zastavujem         
+;        ZASTAV  2, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0) 
+;        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+;        jnz     U1_MB1C       ;-; Ak ano, zastav
+;        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi? (potom stojime urcite)
+;        LCJNE   A, #2, UP2      ; |   ak nie, nezastavujeme 
+;        VYSSIE_KABINA 2         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+;        jz      U1_MB1C         ; |   ak neni zastavujem         
         ljmp    UP2             ; |   inak nezastavim        
-U1_MB1C: clr     UP              ; zastav motor
+;U1_MB1C: clr     UP              ; zastav motor
+;        setb    UPOld           ;       (a zalohuj) 
+;        clr     DOWNOld         ;       (a zalohuj)
+;        clr     FAST            ; 
+;        lcall   WRITEPORTS      ; 
+;        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
+UP1_STOP:
+        lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        jb      MB1, UP1_STOP  ;-; Sme na zastavovacej clonke?
+        clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj) 
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2
+        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2   
 
 ;------------------------------------------------------------------------------- << 2. poschodie >>
 
@@ -501,27 +526,39 @@ UP2_MB2:
 U2_MB2C: setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
-        jmp     UP2_MB1       ;-; a prejdi do stavu UP2_MB1 
+        jmp     UP2_STOP       ;-; a prejdi do stavu UP2_STOP 
 UP2_MB1:
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, UP2_MB1  ;-; Sme na zastavovacej clonke?
         
-        ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
-        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
-        jnz     U2_MB1C       ;-; Ak ano, zastav
-        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi z kabiny? (potom stojime urcite)
-        LCJNE   A, #3, UP3      ; |   ak nie, nezastavujeme  
-        VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
-        jz      U2_MB1C         ; |   ak neni zastavujem  
+;        ZASTAV  3, U            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+;        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+;        jnz     U2_MB1C       ;-; Ak ano, zastav
+;        NAJVYSSIE               ; | ..a sme na najvyssom privolanom poschodi z kabiny? (potom stojime urcite)
+;        LCJNE   A, #3, UP3      ; |   ak nie, nezastavujeme  
+;        VYSSIE_KABINA 3         ; | ..ok, sme na najvyssom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+;        jz      U2_MB1C         ; |   ak neni zastavujem  
         ljmp    UP3             ; |   inak nezastavim
-U2_MB1C: clr     UP              ; zastav motor
+;U2_MB1C: clr     UP              ; zastav motor
+;        setb    UPOld           ;       (a zalohuj)
+;        clr     DOWNOld         ;       (a zalohuj)
+;        clr     FAST            ; 
+;        lcall   WRITEPORTS      ; 
+;        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
+UP2_STOP:
+        lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
+        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        jb      MB1, UP2_STOP  ;-; Sme na zastavovacej clonke?        
+        clr     UP              ; zastav motor
         setb    UPOld           ;       (a zalohuj)
         clr     DOWNOld         ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3
+        jmp     FLOOR3        ;-; a prejdi do stavu FLOO
+        
 DOWN2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
@@ -697,27 +734,38 @@ DOWN3_MB2:
 D3_MB2C: setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
-        jmp     DOWN3_MB1     ;-; a prejdi do stavu DOWN3_MB1
+        jmp     DOWN3_STOP     ;-; a prejdi do stavu DOWN3_STOP
 DOWN3_MB1:    
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN3_MB1;-; Sme na zastavovacej clonke?
-        ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
-        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
-        jnz     D3_MB1C         ; Ak ano, zastav
-        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
-        LCJNE   A, #2, DOWN2    ; |   ak nie, nezastavujeme  
-        NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
-        jz      D3_MB1C         ; |   ak neni zastavujem                  
+;        ZASTAV  2, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+;        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
+;        jnz     D3_MB1C         ; Ak ano, zastav
+;        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+;        LCJNE   A, #2, DOWN2    ; |   ak nie, nezastavujeme  
+;        NIZSIE_KABINA 2         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+;        jz      D3_MB1C         ; |   ak neni zastavujem                  
         ljmp    DOWN2         ;-; |        
-D3_MB1C: clr     DOWN            ; zastav motor
+;D3_MB1C: clr     DOWN            ; zastav motor
+;        setb    DOWNOld         ;       (a zalohuj)
+;        clr     UPOld           ;       (a zalohuj)
+;        clr     FAST            ; 
+;        lcall   WRITEPORTS      ; 
+;        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2 
+DOWN3_STOP:    
+        lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+        ljnb    MB2, ERR_ZAST_C ; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        jb      MB1, DOWN3_STOP;-; Sme na zastavovacej clonke?       
+        clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2      
-      
+        jmp     FLOOR2        ;-; a prejdi do stavu FLOOR2         
+
         
 ;------------------------------------------------------------------------------- << 4. poschodie >>
 
@@ -773,27 +821,37 @@ DOWN4_MB2:
 D4_MB2C: setb    SLOW            ;       Ak ano, spomalme
         clr     FAST            ; 
         lcall   WRITEPORTS      ;
-        jmp     DOWN4_MB1     ;-; a prejdi do stavu DOWN4_MB1
+        jmp     DOWN4_STOP     ;-; a prejdi do stavu DOWN4_STOP
 DOWN4_MB1:    
         lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
         jb      MB1, DOWN4_MB1 ;-; Sme na zastavovacej clonke?
-        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
-        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril 
-        jnz     D4_MB1C       ;-; Ak ano, zastav
-        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
-        LCJNE   A, #3, DOWN3    ; |   ak nie, nezastavujeme  
-        NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
-        jz      D4_MB1C         ; |   ak neni zastavujem          
+;        ZASTAV  3, D            ; Ak ano, chceme tu zastavit? - je toto poschodie zvolene? (Vrati do A 1 ak ano, inak 0)
+;        clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril 
+;        jnz     D4_MB1C       ;-; Ak ano, zastav
+;        NAJNIZSIE               ; | ..a sme na najnizsom privolanom poschodi z kabiny? (potom stojime urcite)
+;        LCJNE   A, #3, DOWN3    ; |   ak nie, nezastavujeme  
+;        NIZSIE_KABINA 3         ; | ..ok, sme na najnizsom privolanom poschodi z kabiny ale neni nad nami uz nic v kabine stlacene? 
+;        jz      D4_MB1C         ; |   ak neni zastavujem          
         ljmp    DOWN3         ;-; |       
-D4_MB1C: clr     DOWN            ; zastav motor
+;D4_MB1C: clr     DOWN            ; zastav motor
+;        setb    DOWNOld         ;       (a zalohuj)
+;        clr     UPOld           ;       (a zalohuj)
+;        clr     FAST            ; 
+;        lcall   WRITEPORTS      ; 
+;        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
+DOWN4_STOP:    
+        lcall   READPORTS       ; nacitanie dat
+        ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
+        ljnb    MB2, ERR_ZAST_C; >>> CHYBA, Vypadla zastavovacia clonka (narazil som na spomalovaciu) <<<
+        jb      MB1, DOWN4_STOP ;-; Sme na zastavovacej clonke?
+        clr     DOWN            ; zastav motor
         setb    DOWNOld         ;       (a zalohuj)
         clr     UPOld           ;       (a zalohuj)
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
-        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                 
-                
+        jmp     FLOOR3        ;-; a prejdi do stavu FLOOR3                   
   
 ERR_1SPOM_C: 
         ;clr     UP              ; zastav motor
@@ -803,6 +861,8 @@ ERR_1SPOM_C:
         ;nop
         ;nop 
         ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
+        mov     DPTR, #STR_ERR_1SPOM_C         ; vypis info 
+        lcall   DISPSTR         ;          
         ljmp    ERROR1         
         
 ERR_2SPOM_C: 
@@ -813,6 +873,8 @@ ERR_2SPOM_C:
         ;nop
         ;nop
         ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
+        mov     DPTR, #STR_ERR_2SPOM_C         ; vypis info 
+        lcall   DISPSTR         ;
         ljmp    ERROR1 
         
 ERR_ZAST_C: 
@@ -825,7 +887,8 @@ ERR_ZAST_C:
         ;lcall   READPORTS
         ;clr     FAST
         ;clr     SLOW
-        _BP_
+        mov     DPTR, #STR_ERR_ZAST_C         ; vypis info 
+        lcall   DISPSTR         ;
         ljmp    ERROR1  
         
 ERR_SKRD: 
@@ -834,7 +897,9 @@ ERR_SKRD:
         ;lcall   WRITEPORTS      ; 
         ;_BP_
         ;nop
-        ;nop
+        ;nop        
+        mov     DPTR, #STR_ERR_SKRD         ; vypis info 
+        lcall   DISPSTR         ;
         ljmp    ERROR1    
         
 ERR_SKRH: 
@@ -844,6 +909,8 @@ ERR_SKRH:
         ;_BP_
         ;nop
         ;nop
+        mov     DPTR, #STR_ERR_SKRH         ; vypis info 
+        lcall   DISPSTR         ;        
         ljmp    ERROR1 
         
 ERROR1:         
@@ -1159,9 +1226,36 @@ WRITEPORTS:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-STR_INIT:   db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
-STR_STOP:   db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 00h
-STR_CALIB:  db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DISPSTR
+; posle na seriovu linku retazec na adrese DPTR
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+DISPSTR:
+        push    ACC
+DSPS_LOOP:           
+        clr     A
+        movc    A, @A+DPTR
+        jz      DSPS_END
+        mov     SBUF, A
+        jnb     TI, $
+        clr     TI
+        inc     DPTR
+        sjmp    DSPS_LOOP
+DSPS_END:
+        pop     ACC
+        ret
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+STR_INIT:         db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
+STR_STOP:         db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 00h
+STR_CALIB:        db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
+STR_ERR_1SPOM_C:  db  'Chyba! Vypadla spomalovacia clonka!', 0dh, 0ah, 00h
+STR_ERR_2SPOM_C:  db  'Chyba! Vypadli dve spomalovacie clonky!', 0dh, 0ah, 00h
+STR_ERR_ZAST_C:   db  'Chyba! Vypadla zastavovacia clonka!', 0dh, 0ah, 00h
+STR_ERR_SKRH:     db  'Chyba! Neocakavane nacitanie hornej spomalovacej clonky!', 0dh, 0ah, 00h
+STR_ERR_SKRD:     db  'Chyba! Neocakavane nacitanie dolnej spomalovacej clonky!', 0dh, 0ah, 00h
 
         DSEG
         org     40h
