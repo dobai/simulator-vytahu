@@ -1,3 +1,22 @@
+
+;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
+; ****************************************************************************
+; INPORTA >  |       |       |DOORCLS| PKI4  | PKI3  | PKI2  | PKI1  |STOPNOT|
+; ----------------------------------------------------------------------------
+; INPORTB >  | DPK   | DPZK  | DP    | SKRD  | SKRH  | MB2   | MB1   |       |
+; ----------------------------------------------------------------------------
+; INPORTC >  |       |       | PI4   | PI3D  | PI3U  | PI2D  | PI2U  | PI1   |
+; ****************************************************************************
+; OUTPORTA > |       |       |       | PKO4  | PKO3  | PKO2  | PKO1  | KS    |
+; ----------------------------------------------------------------------------
+; OUTPORTB > | FLED4 | FLED3 | FLED2 | FLED1 | SLOW  | FAST  | DOWN  | UP    |
+; ----------------------------------------------------------------------------
+; OUTPORTC > | LEDU  | LEDD  | PO4   | PO3D  | PO3U  | PO2D  | PO2U  | PO1   |
+; ****************************************************************************
+; ERRFLOOR > |       |       |       | ErrF4 | ErrF3 | ErrF2 | ErrF1 |       |
+; ****************************************************************************
+
+
 ; adresy I/O portov, ktore pridu na port P2 89C52-ky
 i8255INA        equ     080h
 i8255INB        equ     081h
@@ -17,6 +36,36 @@ OUTPORTC        data    25h
 INPORTBold      data    26h
 CTRLREG         data    27h
 
+ERRFLOOR_U      data    29h
+ERRFLOOR_D      data    2Ah
+
+ERRF1_U         bit     ERRFLOOR_U.1
+ERRF2_U         bit     ERRFLOOR_U.2
+ERRF3_U         bit     ERRFLOOR_U.3
+ERRF4_U         bit     ERRFLOOR_U.4  
+
+ERRF12_U        bit     ERRFLOOR_U.2
+ERRF23_U        bit     ERRFLOOR_U.3
+ERRF34_U        bit     ERRFLOOR_U.4   
+
+ERRF1_D         bit     ERRFLOOR_D.1
+ERRF2_D         bit     ERRFLOOR_D.2
+ERRF3_D         bit     ERRFLOOR_D.3
+ERRF4_D         bit     ERRFLOOR_D.4   
+
+ERRF12_D        bit     ERRFLOOR_D.1
+ERRF23_D        bit     ERRFLOOR_D.2
+ERRF34_D        bit     ERRFLOOR_D.3    
+
+ERRF1_C         data    35h
+ERRF2_C         data    36h
+ERRF3_C         data    37h
+ERRF4_C         data    38h
+
+ERRF12_C        data    39h
+ERRF23_C        data    3Ah
+ERRF34_C        data    3Bh
+           
 POSITION        data    30h
 LOWEST          data    31h
 HIGHEST         data    32h
@@ -74,7 +123,7 @@ PO4             bit     OUTPORTC.5
 LEDD            bit     OUTPORTC.6
 LEDU            bit     OUTPORTC.7
 
-CANGO           bit     CTRLREG.0
+STOPPED         bit     CTRLREG.0
 DOORCLSDold     bit     CTRLREG.1
 UPold           bit     CTRLREG.2
 DOWNold         bit     CTRLREG.3

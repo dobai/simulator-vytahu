@@ -14,6 +14,26 @@ Zabezpeèenie pomocou CFCSS - zabezpecime makrobloky.
       
 Vypadok clonky vyriešime pomocou prerušenia. (Int1)
 
+20.3.2017  Poznamky k densnemu sedeniu:
+    - riesil som rozblikanie LEDiek pri rozpoznani chybneho poschodia - OK
+    - rozhodol som sa riesit chybne poschodie zvlast v smere hore a v smere dole
+    - Urobil som makro ANLB - bitovy AND                      (NEOTESTOVANE!)
+    - Urobil som makro SET_FLOOR_ERR                          (NEOTESTOVANE!)
+        * V pripade potreby spomali kabinu a nastavi priznak STOPPED. 
+        * Rozblika jednotlive LEDky
+        * INKREMENTACIU POCITADLA ZATIAL NERIESI!
+      
+      
+     - Vlozene zakomentovane, neotestovane kusy kodu:
+        * Ignorovanie chybnych poschodi pri makrach NAJNIZSIE, NAJVYSSIE, 
+          NIZSIE_KABINA, a VYSSIE_KABINA   
+        * V stave UP1_MB1 je kus kodu, ktory zisti, ci ide kabina pomaly 
+          a treba zastat, Ak ano, zastane. (A teraz ked tak nad tym 
+          rozmyslam, asi to nie je najstastnejsie riesenie, lebo sa asi 
+          moze stat, ze slow pride tesne pred zastavenim?)  - toto by sme 
+          mozno mohli vyhodit uplne, lebo asi chceme tak ci tak korektne 
+          zastavit. Takze nemusime uvazovat pripad, ze na dvoch poschodiach 
+          za sebou su dodrbane spomalovacie clonky
 
 TODO:
 
@@ -26,9 +46,10 @@ TODO:
   (logicky nasledujuci). Pre stavy UP/DOWNxSTOP su to stavy  UP/DOWNx+-1 
   
    - Samotna obsluha prerusenia bude obsahovat
-        - oznacit aktualne poschodie ako chybne  (nastavim priznak.)
-        - rozblikat LEDky chybnych poschodi
-        - (casom mozno dalsie spracovanie - napr. inkrementaciu pocotadla danej chyby)
+        - Ak je poschodie chybne, koncim
+        - Ak nie je, oznacim ako chybne a inkrementujem pocitadlo
+        - rozblikat LEDky chybnych poschodi (toto sa bude diat automaticky)
+        - skok na nasledujuci stav
         
    - Potom treba dorobit:     
         - nezastavovat na chybnom poschodi
@@ -66,7 +87,9 @@ TODO:
       - Pri STOP budem musiet vydolovat spravny priznak (ulozeny o 16 vyssie ako label;)
       - pri SKRH a SKRD tiez. To necham ako skok, a v prislusnych stavoch nastavim spravny priznak a skocim (tak ako to robim teraz)
       
-         
+  - nejaku kontrolu RAM
+  
+  - casovac, ked stojim na poschodi a mam v kabine niekoho       
 
 
 
