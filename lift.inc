@@ -36,8 +36,8 @@ OUTPORTC        data    25h
 INPORTBold      data    26h
 CTRLREG         data    27h
 
-ERRFLOOR_U      data    29h
-ERRFLOOR_D      data    2Ah
+ERRFLOOR_U      data    2Ah
+ERRFLOOR_D      data    2Bh
 
 ERRF1_U         bit     ERRFLOOR_U.1
 ERRF2_U         bit     ERRFLOOR_U.2
