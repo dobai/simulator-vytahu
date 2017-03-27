@@ -20,9 +20,9 @@ _BP_    MACRO
         nop
 ENDM
                     
-ANLB    MACRO   BIT1, BIT2
+ANLBN   MACRO   BIT1, BIT2
         mov   C, BIT1
-        anl   C, BIT2
+        anl   C, /BIT2
         mov   BIT1, C
 ENDM
 
@@ -110,6 +110,7 @@ ZASTAV  MACRO  C_POSCH, SMER
         orl     C, PI&C_POSCH&SMER      ; | Mam v tomto smere stlacene tlacidlo v sachte?
         anl     C, /DPZK                ; | a mam plne zatazenu kabinu? (lebo ak ano tak ani za boha nestojim)
         orl     C, PKI&C_POSCH          ; | Mam v tomto smere stlacene tlacidlo v kabine? 
+        anl     C, /ERRF&C_POSCH&_&SMER ; | a mam v tomto smere poruchu na tomto poschodi (Ak ano, tak nema zmysel stat)
         orl     C, DPK                  ; | a mam pretazenu kabinu? (Ak ano tak stojim urcite)
         orl     C, STOPPED              ; | a bolo stlacene tlacidlo STOP? (Ak ano tak stojim urcite)
         addc    A, #0h                  ; Ak mi v predchadzajucich krokoch vyslo, ze mam stat, tak stojim nezavisle na tlacidlach kabiny
@@ -120,11 +121,11 @@ NAJNIZSIE  MACRO
         rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1  X | 
         anl     A, #01111110b   ; Vynulujem nedefinovane bity
 
-;        ANLB    A.1, ERRF1_D    ; maskujem chybne poschodia
-;        ANLB    A.2, ERRF2_D
-;        ANLB    A.3, ERRF2_D
-;        ANLB    A.4, ERRF3_D
-;        ANLB    A.5, ERRF3_D
+        ANLBN   ACC.1, ERRF1_D  ; maskujem chybne poschodia
+        ANLBN   ACC.2, ERRF2_D  ; |
+        ANLBN   ACC.3, ERRF2_D  ; |
+        ANLBN   ACC.4, ERRF3_D  ; |
+        ANLBN   ACC.5, ERRF3_D  ; |
 
         mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, aby som mal na konci rovno cislo poschodia)
  ; LL1: 
@@ -143,11 +144,11 @@ NAJVYSSIE  MACRO
         rlc     A               ; SHIFT LEFT - shiftnem si tak, aby som mal kazde poschodie dvojicu bitov | X  4 | 3U 3D | 2U 2D | 1  X | 
         anl     A, #01111110b   ; Vynulujem nedefinovane bity
         
-;        ANLB    A.2, ERRF2_U    ; maskujem chybne poschodia
-;        ANLB    A.3, ERRF2_U
-;        ANLB    A.4, ERRF3_U
-;        ANLB    A.5, ERRF3_U
-;        ANLB    A.6, ERRF4_U
+        ANLBN   ACC.2, ERRF2_U  ; maskujem chybne poschodia
+        ANLBN   ACC.3, ERRF2_U  ; |
+        ANLBN   ACC.4, ERRF3_U  ; |
+        ANLBN   ACC.5, ERRF3_U  ; |
+        ANLBN   ACC.6, ERRF4_U  ; |
         
         mov     R0, #05         ; Budem opakovat max. 4x (ale chcem mat index o jeden viac, aby som mal na konci rovno cislo poschodia)
  ; LL1: 
@@ -415,10 +416,18 @@ F1S:    lcall   READPORTS     ;-; nacitanie dat
         lcall   WRITEPORTS      ;
         jb      DPK, F1S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
-        anl     A, #00011100b ;-;
+        mov     B, ERRFLOOR_U   ; | maskujem chybne poschodia
+        xrl     B, #0FFH        ; | |
+        anl     A, B            ; | |
+        anl     A, #00011100b ;-; |
         jnz     F1OK          ;-; ak ano, podme na to
         mov     A, INPORTC      ; zistenie, ci bolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
         anl     A, #00111110b ;-;
+        ANLBN   ACC.1, ERRF2_U  ; maskujem chybne poschodia (v smere hore)
+        ANLBN   ACC.2, ERRF2_U  ; |
+        ANLBN   ACC.3, ERRF3_U  ; |
+        ANLBN   ACC.4, ERRF3_U  ; |
+        ANLBN   ACC.5, ERRF4_U  ; |
         jnz     F1OK          ;-; ak ano, podme na to
         jmp     F1S             ; Nemam sa kde hnut, opakujem
 F1OK:   setb    UP              ; rychly pohyb hore
@@ -509,7 +518,7 @@ F2S:    lcall   READPORTS     ;-; nacitanie dat
         lcall   WRITEPORTS      ;
         jb      DPK, F2S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         ;_BP_
-        mov     R0, #ERRFLOOR_U  ;   Default predpokladam, ze mam namierene hore (pozeram poruchy poschodia smerom hore)
+        mov     R0, #ERRFLOOR_U ;   Default predpokladam, ze mam namierene hore (pozeram poruchy poschodia smerom hore)
         mov     R1, #11111000b  ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
         mov     R2, #11111000b  ;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
         jb      UPOld, F2OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
@@ -519,9 +528,9 @@ F2S:    lcall   READPORTS     ;-; nacitanie dat
         mov     A, R2           ;       A znegujeme aj masku sachty
         cpl     A               ;       |
         mov     R2, A           ;       |  
-        mov     A, R0           ;  A budeme pozerat poruchy poschodi smerom DOLE (ERRFLOOR_U+1 = ERRFLOOR_D)
-        xrl     A, #01h         ;  | Znegujem posledny bit adresy registra s poruchovymi poschodiami (ERRFLOOR_U na ERRFLOOR_D a naopak)
-        mov     R0, A           ;  |  
+        mov     A, R0           ;       A budeme pozerat poruchy poschodi smerom DOLE (ERRFLOOR_U+1 = ERRFLOOR_D)
+        xrl     A, #01h         ;       | Znegujem posledny bit adresy registra s poruchovymi poschodiami (ERRFLOOR_U na ERRFLOOR_D a naopak)
+        mov     R0, A           ;       |  
 F2OK:   ; Pohyb v jednom smere (nevieme v ktorom)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Kabina)
         mov     B, @R0          ;  | Maskujem chybne poschodia
@@ -529,17 +538,24 @@ F2OK:   ; Pohyb v jednom smere (nevieme v ktorom)
         anl     A, B            ;  |
         anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
         anl     A, R1           ;  | 
-        jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
+        ljnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
                                 ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Sachta)
         mov     A, INPORTA      ; Mam v kabine nieco stlacene?
         mov     B, @R0          ;  | Maskujem chybne poschodia
-        xrl     B, #0FFH        ;  |
-        anl     A, B            ;  |
+        xrl     B, #0FFH        ;  | |
+        anl     A, B            ;  | |
         anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi (kabina) 
         jnz     F2SW            ;  | Ak ano, idem rovno zistovat opacny smer.
         mov     A, INPORTC      ; Mam stlacene nieco v sachte (mojim smerom)?    
         anl     A, #00111001b   ;  | Beriem iba bity predstavujuce tlacidla privolavacov
         anl     A, R2           ;  |   
+        mov     B, @R0          ;  | Maskujem chybne poschodia (v smere hore)      
+        ANLBN   ACC.0, B.1      ;  | 
+        ANLBN   ACC.1, B.2      ;  | 
+        ANLBN   ACC.2, B.2      ;  |
+        ANLBN   ACC.3, B.3      ;  |
+        ANLBN   ACC.4, B.3      ;  |
+        ANLBN   ACC.5, B.4      ;  |
         jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         ; Pohyb v opacnom smere (nevieme v ktorom)
 F2SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruchovymi poschodiami (ERRFLOOR_U na ERRFLOOR_D a naopak)
@@ -555,14 +571,21 @@ F2SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruc
         mov     R2, A           ;  |               
         mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
         mov     B, @R0          ;  | Maskujem chybne poschodia
-        xrl     B, #0FFH        ;  |
-        anl     A, B            ;  |
+        xrl     B, #0FFH        ;  | |
+        anl     A, B            ;  | |
         anl     A, #00011010b   ;  | Beriem iba bity predstavujuce tlacidla poschodi   
         anl     A, R1           ;  | 
         jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         mov     A, INPORTC      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
         anl     A, #00111001b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
         anl     A, R2           ;  | 
+        mov     B, @R0          ;  | Maskujem chybne poschodia (v smere hore)      
+        ANLBN   ACC.0, B.1      ;  | 
+        ANLBN   ACC.1, B.2      ;  | 
+        ANLBN   ACC.2, B.2      ;  |
+        ANLBN   ACC.3, B.3      ;  |
+        ANLBN   ACC.4, B.3      ;  |
+        ANLBN   ACC.5, B.4      ;  |
         jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
 F2:     jb      UPOld, F2UP     ;   
@@ -702,6 +725,7 @@ F3S:    lcall   READPORTS     ;-; nacitanie dat
         clr     PO3D            ;
         lcall   WRITEPORTS      ;
         jb      DPK, F3S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
+        mov     R0, #ERRFLOOR_U ; Default predpokladam, ze mam namierene hore (pozeram poruchy poschodia smerom hore)
         mov     R1, #11110000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) kabina
         mov     R2, #11100000b;-; Default predpokladam, ze mam namierene hore (na 3. a 4.) sachta
         jb      UPOld, F3OK     ;   Je to pravda? Naozaj som doteraz isiel hore?
@@ -710,22 +734,41 @@ F3S:    lcall   READPORTS     ;-; nacitanie dat
         mov     R1, A           ;       |
         mov     A, R2           ;       A znegujeme aj masku sachty
         cpl     A               ;       |
-        mov     R2, A           ;       |        
+        mov     R2, A           ;       |     
+        mov     A, R0           ;       A budeme pozerat poruchy poschodi smerom DOLE (ERRFLOOR_U+1 = ERRFLOOR_D)
+        xrl     A, #01h         ;       | Znegujem posledny bit adresy registra s poruchovymi poschodiami (ERRFLOOR_U na ERRFLOOR_D a naopak)
+        mov     R0, A           ;       |    
 F3OK:   ; Pohyb v jednom smere (nevieme v ktorom)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Kabina)
+        mov     B, @R0          ;  | Maskujem chybne poschodia
+        xrl     B, #0FFH        ;  | |
+        anl     A, B            ;  | |
         anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
         anl     A, R1           ;  | 
-        jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
+        ljnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
                                 ; zistenie, ci bolo stlacene nieco viac (menej) ako poschodie na ktorom stojim (Sachta)
         mov     A, INPORTA      ; Mam v kabine nieco stlacene?
+        mov     B, @R0          ;  | Maskujem chybne poschodia
+        xrl     B, #0FFH        ;  | |
+        anl     A, B            ;  | |
         anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi (kabina)
         jnz     F3SW            ;  | Ak ano, idem rovno zistovat opacny smer.
         mov     A, INPORTC      ; Mam stlacene nieco v sachte (mojim smerom)?    
         anl     A, #00100111b   ;  | Beriem iba bity predstavujuce tlacidla privolavacov
         anl     A, R2           ;  |   
+        mov     B, @R0          ;  | Maskujem chybne poschodia (v smere hore)      
+        ANLBN   ACC.0, B.1      ;  | 
+        ANLBN   ACC.1, B.2      ;  | 
+        ANLBN   ACC.2, B.2      ;  |
+        ANLBN   ACC.3, B.3      ;  |
+        ANLBN   ACC.4, B.3      ;  |
+        ANLBN   ACC.5, B.4      ;  |
         jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         ; Pohyb v opacnom smere (nevieme v ktorom)
-F3SW:   cpl     UPOld           ;  Znegujem stary posun
+F3SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruchovymi poschodiami (ERRFLOOR_U na ERRFLOOR_D a naopak)
+        xrl     A, #01h         ;  |
+        mov     R0, A           ;  |
+        cpl     UPOld           ;  Znegujem stary posun
         cpl     DOWNOld         ;  |
         mov     A, R1           ;  Znegujeme masky
         cpl     A               ;  |
@@ -734,12 +777,22 @@ F3SW:   cpl     UPOld           ;  Znegujem stary posun
         cpl     A               ;  |
         mov     R2, A           ;  |               
         mov     A, INPORTA      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Kabina)
+        mov     B, @R0          ;  | Maskujem chybne poschodia
+        xrl     B, #0FFH        ;  | |
+        anl     A, B            ;  | |
         anl     A, #00010110b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
         anl     A, R1           ;  | 
         jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         mov     A, INPORTC      ; zistenie, cibolo stlacene nieco viac ako poschodie na ktorom stojim (Sachta)
         anl     A, #00100111b   ;  | Beriem iba bity predstavujuce tlacidla poschodi
         anl     A, R2           ;  | 
+        mov     B, @R0          ;  | Maskujem chybne poschodia (v smere hore)      
+        ANLBN   ACC.0, B.1      ;  | 
+        ANLBN   ACC.1, B.2      ;  | 
+        ANLBN   ACC.2, B.2      ;  |
+        ANLBN   ACC.3, B.3      ;  |
+        ANLBN   ACC.4, B.3      ;  |
+        ANLBN   ACC.5, B.4      ;  |
         jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
 F3:     jb      UPOld, F3UP     ;   
@@ -799,10 +852,10 @@ U3_MB1C: clr     STOPPED         ; Priznak STOPPED vynulujem, uz som ho osetril
 DOWN3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         ZAKMITC MB1             ; Pockame, kym odideme z poschodia (Clonky MB1)
-        lcall   READPORTS       ; nacitanie dat
+DOWN3A: lcall   READPORTS       ; nacitanie dat
         ljnb    SKRD, ERR_SKRD  ; >>> CHYBA, Dolna porovnavacia clonka <<<
         ljnb    MB1, ERR_2SPOM_C; >>> CHYBA, Vypadli 2 spomalovacie clonky (narazil som na zastavovaciu) <<<
-        jb      MB2, DOWN3    ;-; mame uz 1. spomalovaciu clonku?
+        jb      MB2, DOWN3A   ;-; mame uz 1. spomalovaciu clonku?
         ZAKMITC MB2             ; Pockame, kym z nej odideme   
         setb    LEDU            ; Ak ano, rozsviet LEDku, ze mame prvu MB2 mame za sebou
         lcall   WRITEPORTS      ;
@@ -878,10 +931,18 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         lcall   WRITEPORTS      ;
         jb      DPK, F4S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         mov     A, INPORTA      ; zistenie, ci bolo stlacene nieco menej ako poschodie na ktorom stojim (Kabina)
+        mov     B, ERRFLOOR_D   ; | maskujem chybne poschodia
+        xrl     B, #0FFH        ; | |
+        anl     A, B            ; | |
         anl     A, #00001110b ;-;
         jnz     F4OK          ;-; ak ano, ideme na to
         mov     A, INPORTC      ; zistenie, ci bolo stlacene nieco menej ako poschodie na ktorom stojim (Sachta)
         anl     A, #00011111b ;-;
+        ANLBN   ACC.0, ERRF1_D  ; maskujem chybne poschodia (v smere hore)
+        ANLBN   ACC.1, ERRF2_D  ; |
+        ANLBN   ACC.2, ERRF2_D  ; |
+        ANLBN   ACC.3, ERRF3_D  ; |
+        ANLBN   ACC.4, ERRF3_D  ; |
         jnz     F4OK          ;-; ak ano, ideme na to
         jmp     F4S             ; Nemam sa kde hnut, opakujem
 F4OK:   setb    DOWN            ; rychly pohyb dole

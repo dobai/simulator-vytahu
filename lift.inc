@@ -55,7 +55,7 @@ ERRF4_D         bit     ERRFLOOR_D.4
 
 ERRF12_D        bit     ERRFLOOR_D.1
 ERRF23_D        bit     ERRFLOOR_D.2
-ERRF34_D        bit     ERRFLOOR_D.3    
+ERRF34_D        bit     ERRFLOOR_D.3 
 
 ERRF1_C         data    35h
 ERRF2_C         data    36h
@@ -187,4 +187,3 @@ bmPI2U            equ    00000100b
 bmPI3D            equ    00001000b
 bmPI3U            equ    00010000b
 bmPI4             equ    00100000b
-
