@@ -55,7 +55,7 @@ ERRF4_D         bit     ERRFLOOR_D.4
 
 ERRF12_D        bit     ERRFLOOR_D.1
 ERRF23_D        bit     ERRFLOOR_D.2
-ERRF34_D        bit     ERRFLOOR_D.3 
+ERRF34_D        bit     ERRFLOOR_D.3    
 
 ERRF1_C         data    35h
 ERRF2_C         data    36h
@@ -114,12 +114,16 @@ FLED2           bit     OUTPORTB.5
 FLED3           bit     OUTPORTB.6
 FLED4           bit     OUTPORTB.7
 
+PO1U            bit     OUTPORTC.0
+PO1D            bit     OUTPORTC.0
 PO1             bit     OUTPORTC.0
 PO2D            bit     OUTPORTC.1
 PO2U            bit     OUTPORTC.2
 PO3D            bit     OUTPORTC.3
 PO3U            bit     OUTPORTC.4
 PO4             bit     OUTPORTC.5
+PO4U            bit     OUTPORTC.5
+PO4D            bit     OUTPORTC.5
 LEDD            bit     OUTPORTC.6
 LEDU            bit     OUTPORTC.7
 
@@ -187,3 +191,4 @@ bmPI2U            equ    00000100b
 bmPI3D            equ    00001000b
 bmPI3U            equ    00010000b
 bmPI4             equ    00100000b
+
