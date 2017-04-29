@@ -55,6 +55,20 @@ SERCHAR MACRO CHAR
 ENDM
 
 
+;*******************************************************************************
+;   Instrukcie pre casovace a pocitadla
+;-------------------------------------------------------------------------------
+;     Spustenie casovaca s hodnotou <VAL>. Po (<VAL>*50)ms sa nastavi 
+;     priznak <T2_F>    
+;
+TIMER2  MACRO  VAL
+	   mov		 T2_C, #VAL				 ;; 3 sekundy
+		 clr 	   T2_F      				 ;; vynulovat priznak pretecenia
+		 setb	   TR2						   ;; spustit casovac
+ENDM
+
+
+
 
 ;*******************************************************************************
 ;   Ekvivalenty podmienenych skokovych instrukcii s dlhym skokom

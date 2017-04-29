@@ -39,6 +39,11 @@ CTRLREG         data    27h
 ERRFLOOR_U      data    2Ah
 ERRFLOOR_D      data    2Bh
 
+T_F		          data	  2Ch
+T2_C		        data	  2Dh
+T2_R		        data	  2Eh
+T2_F		        bit	    T_F.2
+
 ERRF1_U         bit     ERRFLOOR_U.1
 ERRF2_U         bit     ERRFLOOR_U.2
 ERRF3_U         bit     ERRFLOOR_U.3
