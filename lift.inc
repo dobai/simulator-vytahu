@@ -27,21 +27,45 @@ i8255OUTB       equ     0c1h
 i8255OUTC       equ     0c2h
 i8255OUTCW      equ     0c3h
 
-INPORTA         data    28h         ; nutne kvoli emulatoru!!!
-INPORTB         data    21h
+; bitovo adresovatelne bunky
+;               data    20h
+INPORTB         data    21h    ; nutne kvoli emulatoru!!! 
 INPORTC         data    22h
 OUTPORTA        data    23h
 OUTPORTB        data    24h
 OUTPORTC        data    25h
 INPORTBold      data    26h
 CTRLREG         data    27h
-
+INPORTA         data    28h
+;               data    29h
 ERRFLOOR_U      data    2Ah
 ERRFLOOR_D      data    2Bh
-
 T_F		          data	  2Ch
-T2_C		        data	  2Dh
-T2_R		        data	  2Eh
+T2_C		        data	  2Dh      ;toto tu nemusi byt, netreba mi bitovo adresovatelne
+;		            data	  2Eh
+;               data    2Fh  
+; general purpose RAM (including STACK)
+POSITION        data    30h
+LOWEST          data    31h
+HIGHEST         data    32h
+STOPTIMER       data    33h
+OUTPORTBold     data    34h
+ERRF1_C         data    35h
+ERRF2_C         data    36h
+ERRF3_C         data    37h
+ERRF4_C         data    38h
+ERRF12_C        data    39h
+ERRF23_C        data    3Ah
+ERRF34_C        data    3Bh
+G        		    data    3Ch
+D1	            data    3Dh
+D2              data    3Eh
+ERRSKRH_C       data    3Fh
+ERRSKRD_C       data    40h      
+
+;                       50h - vyssie - stack!
+
+
 T2_F		        bit	    T_F.2
 
 ERRF1_U         bit     ERRFLOOR_U.1
@@ -60,26 +84,7 @@ ERRF4_D         bit     ERRFLOOR_D.4
 
 ERRF12_D        bit     ERRFLOOR_D.1
 ERRF23_D        bit     ERRFLOOR_D.2
-ERRF34_D        bit     ERRFLOOR_D.3    
-
-ERRF1_C         data    35h
-ERRF2_C         data    36h
-ERRF3_C         data    37h
-ERRF4_C         data    38h
-
-ERRF12_C        data    39h
-ERRF23_C        data    3Ah
-ERRF34_C        data    3Bh
-           
-POSITION        data    30h
-LOWEST          data    31h
-HIGHEST         data    32h
-STOPTIMER       data    33h
-OUTPORTBold     data    34h
-
-G        		data    3Ch
-D1	        data    3Dh
-D2          data    3Eh
+ERRF34_D        bit     ERRFLOOR_D.3
 
 STOPNOT         bit     INPORTA.0
 PKI1            bit     INPORTA.1
@@ -143,8 +148,8 @@ DOWNold         bit     CTRLREG.3
 FASTold         bit     CTRLREG.4
 SLOWold         bit     CTRLREG.5
 
-WRNOT           bit     0b6h        ; p3.6
-RDNOT           bit     0b7h        ; p3.7
+WRNOT           bit     0B6h        ; p3.6
+RDNOT           bit     0B7h        ; p3.7
 
 ; bitove masky
 ; 8255OUT 

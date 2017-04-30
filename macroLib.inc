@@ -34,10 +34,14 @@ CFCSS   MACRO   s, d, D1val, D2val, Dx
         LCJNE A,  #s, CFCERR     ;;     (ak sa priznaky nerovnaju, skoci sa na osetrenie chyby )
         IF (D1val <> -1)
             mov		D1, #D1val     ;; Nastavenie priznaku <D1>
-        ENDIF
+        ELSE
+            mov		D1, #32        ;; Nastavenie priznaku <D1> na hodnotu mimo rozsahu 
+        ENDIF                    ;; (aby sa predislo maskovaniu pri nepovolenom skoku)
         IF (D2val <> -1)
             mov		D2, #D2val     ;; Nastavenie priznaku <D2>
-        ENDIF
+        ELSE
+            mov		D2, #32        ;; Nastavenie priznaku <D2> na hodnotu mimo rozsahu 
+        ENDIF                    ;; (aby sa predislo maskovaniu pri nepovolenom skoku)
         SERCHAR   #s             ;; Vypis aktualneho <s> na seriovu linku
 ENDM
 
@@ -134,16 +138,109 @@ ENDM
 
 
 ;*******************************************************************************
-;   Signalizacia polohy kabiny
+;   Privolavace, signalizácia polohy a smeru kabiny
 ;-------------------------------------------------------------------------------
-;     Signalizuje polohu kabiny na signalizacnom paneli. 
-;     Smerove sipky budu signalizovat zastavenie kabiny,
+;
+;   Signalizacia polohy kabiny
+;
+;     Signalizuje polohu kabiny na signalizacnom paneli.  
 ;     Poloha kabiny zavisi o parametra "POLOHA" 
 ;     Vykonane zmeny sa zapisu na porty     
 ;
 POLOHA_LED  MACRO  POLOHA
-        orl     OUTPORTC, #(bmLEDU or bmLEDD)
         anl     OUTPORTB, #((not bmFLED1) and(not bmFLED2) and(not bmFLED3) and(not bmFLED4))          
         setb    FLED&POLOHA
         lcall   WRITEPORTS
 ENDM
+
+;   Zrusenie volby vybraneho poschodia
+;
+;     Zrusi volbu vybraneho poschodia <POSCH>. Volba   
+;     sa zrusi v kabine ako aj v oboch smeroch na poschodi.
+;
+ZRUS_POSCH  MACRO POSCH
+        clr     PKO&POSCH       ;; vynulovanie volby poschodia na ktorom stojim
+        clr     PO&POSCH&U      ;;
+        clr     PO&POSCH&D      ;;
+        lcall   WRITEPORTS
+ENDM
+
+;   Rozsvietenie kabinoveho svetla a smerovej signalizacie 
+;
+;     Rozsvieti kabinove svetlo a obe sibky smerovej
+;     signalizacie ak sa v kabine nachadza obsluhyschopna
+;     osoba. V opacnom pripade svetlo a signalizaciu
+;     zhasne.
+;
+KABINOVE_SVETLO MACRO
+        mov      C, DP          ;; Ak je nieko v kabine,
+        orl      C, DPZK        ;;
+        orl      C, DPK         ;;
+        mov      KS, C          ;;   - v kabine zapalime svetlo. Ak nie, bude zhasnute.
+        mov      LEDU, C        ;;   - Rozsvietime signalizaciu do oboch smerov. Ak nie, zhasneme.
+        mov      LEDD, C        ;;
+        lcall   WRITEPORTS      ;;
+ENDM
+
+;   Rozsvieti obe smerove LED diody (signalizacia, ze kabina stoji)
+;
+ROZSVIET_SMER_LED MACRO
+        setb    LEDU            ;
+        setb    LEDD            ;
+        lcall   WRITEPORTS      ;
+ENDM
+
+;   Zistenie, ci obsluhyschopna osoba zvolila poschodie
+;      
+;     Zistenie, či obsluhyschopna osoba v kabine vytahu 
+;     stlacila niektoru z volieb poschodi v kabine.
+;     V pripade, ze v kabine sa nachadza obsluhyschopna 
+;     osoba a volba zatial nebola uskutocnena, skoci sa 
+;     na <NAVESTIE>      
+;        
+JE_VYBRATE_POSCHODIE MACRO NAVESTIE
+        mov      C, DP         ;; Ak sa nachadza v kabine osoba, 
+        orl      C, DPZK        ;;
+        orl      C, DPK         ;;
+        jnc      $+8            ;;
+        mov      A, INPORTA     ;;
+        anl      A, #00011110b  ;; ...a nie je vybrata ziadna volba (v kabine)
+        jz       NAVESTIE       ;; skoc na navestie
+ENDM
+
+
+;*******************************************************************************
+;   Rychlost a smer pohybu motora
+;-------------------------------------------------------------------------------
+;
+;   Nastavenie smeru pohybu motora - hore
+SET_UP MACRO
+        setb     UP
+        clr      DOWN
+        setb     LEDU
+        clr      LEDD 
+ENDM
+
+;   Nastavenie smeru pohybu motora - dole
+SET_DOWN MACRO
+        clr     UP
+        setb    DOWN
+        clr     LEDU
+        setb    LEDD 
+ENDM
+
+;   Nastavenie rychlosti pohybu motora - rychlo
+SET_FAST MACRO
+        setb     FAST
+        clr      SLOW
+        setb     KS      
+ENDM
+
+;   Nastavenie smeru pohybu motora - hore
+SET_SLOW MACRO
+        setb     SLOW
+        clr      FAST
+        setb     KS
+ENDM
+ 
+  
