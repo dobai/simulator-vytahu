@@ -199,8 +199,8 @@ TIMER0CONST     equ     20      ; pouziva sa pri Timer0, ktory sluzi na rozblika
         org     000Bh           ; v tejto casti pamati je vektor prerusenia
         ljmp    INT_TIMER0      ; pre casovac T0
         
-        ;org 	  0023h           ; v tejto casti pamati je vektor prerusenia
-	;	    ljmp	  SERIAL_INT		  ; seriovej linky 
+        org 	  0023h           ; v tejto casti pamati je vektor prerusenia
+		    ljmp	  SERIAL_INT		  ; seriovej linky 
     
         org		  002Bh           ; v tejto casti pamati je vektor prerusenia
 		    ljmp    INT_TIMER2      ; pre casovac T2   
@@ -269,9 +269,13 @@ RESET:
         clr     ET0
         setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
         
+        clr     TI
+        clr     RI
+        setb    TRE
+        setb	  ES			; enable serial interrupt	
+		    mov		  MSG_PTR_REC, #0h
+		    clr		  S_RI
         
-        
-
 
         ; pociatocna inicializacia - vynuluj vstupne registre a rozsviet vsetky diody 
         mov     INPORTA, #0
@@ -375,8 +379,10 @@ MAIN:
 
         ;mov     R5, #0
         ;mov     R6, #20
-        setb    ET0;
+        ;setb    ET0;
         
+
+                                                                                          
         ;Inicializacia priznakov (CFCSS)
         mov		G, #30
 		    mov		D1, #0
@@ -400,6 +406,9 @@ F1S:    lcall   READPORTS       ; nacitanie dat
         ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 1
+        
+        LCALLB		S_RI, RCV_MESSAGE
+        
         jnb		   T2_F, F1S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F1S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
@@ -1651,6 +1660,11 @@ STR_ERR_SKRD:     db  'Chyba! Neocakavane nacitanie dolnej spomalovacej clonky!'
 STR_ERR_FLOOR:     db  'Chyba! Neocakavane pohnutie kabyny z poschodia!', 0dh, 0ah, 00h
 STR_CFC_START:    db  'Spustam KTP...', 0dh, 0ah, 00h
 STR_ERR_CFC:      db  'Doslo k zmene KTP!', 0dh, 0ah, 00h
+
+COM_KEEPALIVE:    db  000h, 00h, 7Eh, 00h
+COM_BUSY:		      db  0FDh, 89h, 7Eh, 00h
+COM_ACK:		      db  0FEh, 6Bh, 7Eh, 00h
+COM_NACK:		      db  0FFh, 35h, 7Eh, 00h
 
 
         DSEG
