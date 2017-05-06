@@ -17,6 +17,7 @@
 ; ****************************************************************************
 
 
+
 ; adresy I/O portov, ktore pridu na port P2 89C52-ky
 i8255INA        equ     080h
 i8255INB        equ     081h
@@ -28,7 +29,7 @@ i8255OUTC       equ     0c2h
 i8255OUTCW      equ     0c3h
 
 ; bitovo adresovatelne bunky
-;               data    20h
+;               data    20h    ; toto vyuziva emulator
 INPORTB         data    21h    ; nutne kvoli emulatoru!!! 
 INPORTC         data    22h
 OUTPORTA        data    23h
@@ -42,7 +43,7 @@ ERRFLOOR_U      data    2Ah
 ERRFLOOR_D      data    2Bh
 T_F		          data	  2Ch
 T2_C		        data	  2Dh      ;toto tu nemusi byt, netreba mi bitovo adresovatelne
-;		            data	  2Eh
+T0_C            data	  2Eh
 ;               data    2Fh  
 ; general purpose RAM (including STACK)
 POSITION        data    30h
@@ -61,12 +62,25 @@ G        		    data    3Ch
 D1	            data    3Dh
 D2              data    3Eh
 ERRSKRH_C       data    3Fh
-ERRSKRD_C       data    40h      
+ERRSKRD_C       data    40h 
+ERRSIG          data    41h
+   
+MSG_LEN			    data	  42h
+MSG_PTR_L		    data	  43h
+MSG_PTR_H		    data	  44h
+MSG_PTR_REC		  data	  45h
+
+             
+
 
 ;                       50h - vyssie - stack!
 
 
+
+T0_F		        bit	    T_F.0
 T2_F		        bit	    T_F.2
+S_RI			      bit		  T_F.1
+TRE             bit     T_F.3
 
 ERRF1_U         bit     ERRFLOOR_U.1
 ERRF2_U         bit     ERRFLOOR_U.2

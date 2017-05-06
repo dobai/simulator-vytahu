@@ -23,11 +23,13 @@ $include (macroLib.inc)
 
 ; Definicie registrov pre Keil uVision
 T2CON  DATA  0C8H  ;TIMER 2 CONTROL
+T2MOD  DATA  0C9H  ;TIMER 2 MODE
 RCAP2L DATA  0CAH  ;TIMER 2 CAPTURE REGISTER - LOW BYTE
 RCAP2H DATA  0CBH  ;TIMER 2 CAPTURE REGISTER - HIGH BYTE
 TR2    BIT   0CAH  ;T2CON.2 - TIMER 2 ON/OFF CONTROL
 ET2    BIT   0ADH  ;IE.5 - TIMER 2 INTERRUPT ENABLE
 TF2    BIT   0CFH  ;T2CON.7 - TIMER 2 OVERFLOW FLAG
+WDTRST DATA  0A6H  ;Watchdog timer
 
 
 COUNT    SET    0
@@ -189,6 +191,7 @@ ENDM
 TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby seriovej komunikacie
                                 ; hodnota 250 znamena prenosovu rychlost 4800 baud pri oscilatore 11.0592MHz
                                 ; nastavenie terminalu je 4800 8-N-1, no flow control
+TIMER0CONST     equ     20      ; pouziva sa pri Timer0, ktory sluzi na rozblikanie LEDiek pri poruche. Hodnota 20 je 1 sekunda (1=50ms)
 ;osetrenie vektorov preruseni
         org     0000h           ; adresa odkial startuje program po resete
         ljmp    START           ; skok na zaciatok kodu programu
@@ -196,6 +199,9 @@ TIMERCONST      equ     250     ; udaj pre nastavenie casovaca pre potreby serio
         org     000Bh           ; v tejto casti pamati je vektor prerusenia
         ljmp    INT_TIMER0      ; pre casovac T0
         
+        ;org 	  0023h           ; v tejto casti pamati je vektor prerusenia
+	;	    ljmp	  SERIAL_INT		  ; seriovej linky 
+    
         org		  002Bh           ; v tejto casti pamati je vektor prerusenia
 		    ljmp    INT_TIMER2      ; pre casovac T2   
               
@@ -239,7 +245,7 @@ RESET:
                                     ; mod 1 (8b UART), SM2=0 (jednoprocesorovy system)
                                     ; REN=1, 0, 0, TI=1 (vysielaci register je prazdny)
                                     ; RI=0 (prijimaci register - nebol prijaty znak)
-        mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu
+        ;mov     TCON,#00000001b     ; INT0 je citlive na zostupnu hranu				 <<< 
         mov     TMOD,#00100001b     ; nastavenie TMOD registra
                                     ; T1: mod 1 - 16 bitove pocitadlo
                                     ; GATE=0 (programove riadenie casovaca)
@@ -250,8 +256,8 @@ RESET:
         mov     PCON,#01000000b     ; najvyssi bit musi byt 0, aby sa nezdvojnasobila prenosova rychlost seriovej linky                   <<<<<<<<   00000000b
         mov     TL1, #000h          ; inicializacia casovaca T1
         mov     TH1, #0FAh          ; 
-        mov     TL0, #000h          ; inicializacia casovaca T0 - 57600 = 0e100h
-        mov     TH0, #04Ch
+        mov     TL0, #000h          ; inicializacia casovaca T0 - 57600 = 0e100h		 <<<
+        mov     TH0, #04Ch					;                                        				 <<<
 		    mov		  T2CON,  #0			    ; Auto-reload mod
 		    mov		  RCAP2L, #0h;		    ; 4C00h = 19456,  Timer Clk=11,0592/12*1 = 0,9216 MHz
 		    mov		  RCAP2H, #4Ch;		    ; (50ms)
@@ -259,7 +265,8 @@ RESET:
         
         
         
-        setb    TR0
+        setb    TR0                 ;                                        				 <<<
+        clr     ET0
         setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
         
         
@@ -281,6 +288,25 @@ RESET:
         mov     OUTPORTB, #0
         mov     OUTPORTC, #0
         call    WRITEPORTS          ; zapis novu informaciu
+        
+        ;----------------------------------------------------
+        ;mov     DPTR, #STR_RESET    ; vypis info 
+        ;lcall   DISPSTRNOWDT        ; o zapnuti watchdog timera
+        
+        ;TIMER2  200
+        ;jnb		  T2_F, $			        ; Uz presiel cas?
+        
+        ;clr     DOWN                ; ZASTAVIME KABINU
+        ;clr     FAST                ; a rychlo
+        ;clr     SLOW                ;                           
+        ;clr     UP                  ;
+        ;lcall   WRITEPORTS          ; zapis informaciu 
+        ;mov     DPTR, #STR_WDT      ; vypis info 
+        ;lcall   DISPSTRNOWDT        ; o zapnuti watchdog timera
+        ;mov     WDTRST, #01Eh
+        ;mov     WDTRST, #0E1h
+        
+        ;----------------------------------------------------
 
         mov     INPORTA, #0
         mov     INPORTB, #0         
@@ -292,8 +318,9 @@ RESET:
 
         
         mov     DPTR, #STR_INIT         ; vypis info 
-        lcall   DISPSTR                 ; o inicializacii       
-
+        lcall   DISPSTR                 ; o inicializacii
+        
+               
 CALIB:
         ;kalibracia vytahu podla dolnej porovnavacej clonky
         ;setb    TR0
@@ -346,8 +373,8 @@ MAIN:
 
 
 
-        mov     R5, #0
-        mov     R6, #20
+        ;mov     R5, #0
+        ;mov     R6, #20
         setb    ET0;
         
         ;Inicializacia priznakov (CFCSS)
@@ -370,6 +397,8 @@ FLOOR1:
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
 F1S:    lcall   READPORTS       ; nacitanie dat
+        ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 1
         jnb		   T2_F, F1S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
@@ -485,6 +514,9 @@ FLOOR2:
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
 F2S:    lcall   READPORTS     ;-; nacitanie dat
+        ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 2
         jnb		   T2_F, F2S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
@@ -745,12 +777,15 @@ FLOOR3:
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
 F3S:    lcall   READPORTS     ;-; nacitanie dat
+        ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 3
         jnb		   T2_F, F3S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F3S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         jnb     DOORCLSD, F3S   ; Su otvorene dvere? Ak ano, tak nejdem dalej.
-        JE_VYBRATE_POSCHODIE F3S; Je v kabine osoba, ktora este nevybrala poschodie? Ak ano, nejdeme dalej.
+        JE_VYBRATE_POSCHODIE F3S; Je v kabine osoba, ktora este nevybrala poschodie? Ak ano, nejdeme dalej.          
         ;clr     PKO3          ;-; vynulovanie volby poschodia na ktorom stojim
         ;clr     PO3U            ;
         ;clr     PO3D            ;
@@ -1024,6 +1059,8 @@ FLOOR4:
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
 F4S:    lcall   READPORTS     ;-; nacitanie dat
+        ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
+        ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 4
         jnb		   T2_F, F4S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
@@ -1153,6 +1190,9 @@ DOWN4_STOP_C: lcall   READPORTS       ; nacitanie dat
 
         
 ERR_SKRD:    
+        clr     DOWN            ; zastav motor
+        clr     FAST            ; 
+        lcall   WRITEPORTS      ; 
         mov     DPTR, #STR_ERR_SKRD         ; vypis info o neocakavanom nacitani synchronizacnej clonky
         lcall   DISPSTR         ;
         ; Nastavenie spravneho priznaku G a D     
@@ -1162,6 +1202,9 @@ ERR_SKRD:
         ljmp    FLOOR1    
         
 ERR_SKRH: 
+        clr     FAST            ; zastav motor
+        clr     SLOW            ; 
+        lcall   WRITEPORTS      ; 
         mov     DPTR, #STR_ERR_SKRH         ; vypis info o neocakavanom nacitani synchronizacnej clonky
         lcall   DISPSTR         ;
         ; Nastavenie spravneho priznaku G a D     
@@ -1169,6 +1212,22 @@ ERR_SKRH:
         mov     D1, #0           ;
         mov     D2, #0           ;
         ljmp    FLOOR4 
+        
+ERRFLOOR:
+        clr     FAST            ; zastav motor
+        clr     SLOW            ; 
+        lcall   WRITEPORTS      ; 
+        mov     DPTR, #STR_ERR_FLOOR         ; vypis info o neocakavanom pohnuti sa kabiny z poschodia
+        lcall   DISPSTR         ;
+        ; rozblikaj vsetky LEDky
+        ; pockaj kym vsetci vystupia
+        ; pockaj este 3 sakundy
+        TIMER2  60
+        jnb		  T2_F, $			; 
+        ;zresetuj
+        ljmp     START
+        
+
            
 CFCERR:
         clr     UP              ; zastav motor
@@ -1189,6 +1248,7 @@ ENDPROG:
         clr     KS
         call    WRITEPORTS
         jmp     ENDPROG 
+
         ret
         
         
@@ -1198,6 +1258,7 @@ ENDPROG:
 ; Obsluha prerusenia timera 0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;        
 INT_TIMER0:
+        push    PSW
         push    ACC
         push    B
         push    P0
@@ -1206,13 +1267,13 @@ INT_TIMER0:
         push    P3
         ;push    OUTPORTC
         
-        mov     A, R5
-        dec     R5
+        mov     A, T0_C ;R5
+        dec     T0_C    ;R5
         jz      INT_TIMER0_MAIN    
         sjmp    INT_TIMER0_END
 INT_TIMER0_MAIN:
-        mov     A, R6
-        mov     R5, A
+        mov     A, #TIMER0CONST;R6
+        mov     T0_C, A ;R5, A
         mov     A, ERRFLOOR_U
         orl     A, ERRFLOOR_D
         anl     A, #00011110b
@@ -1221,6 +1282,7 @@ INT_TIMER0_MAIN:
         rl      A    
         xrl     OUTPORTB, A     
                       
+        clr    EA
         mov     p0, OUTPORTB 
         mov     p2, #i8255OUTB
         clr     WRNOT
@@ -1229,11 +1291,9 @@ INT_TIMER0_MAIN:
         nop
         nop
         setb    WRNOT
-        
-        
+        setb    EA
+     
 INT_TIMER0_END:
-        
-
         ;pop     OUTPORTC
         pop     P3
         pop     P2
@@ -1241,6 +1301,7 @@ INT_TIMER0_END:
         pop     P0 
         pop     B       
         pop     ACC
+        pop     PSW
 	reti 
         
 ;INT_TIMER0:
@@ -1269,19 +1330,33 @@ INT_TIMER0_END:
 ; 1 instrukcia 2 takty? => 11.0592/2 = pocet instrukcii potrebnych na 1 sekundu
 ; 11.0592MHz/2000 = zdrzanie 1 ms
 TIME10MS:
-        mov     R1,#063h        ; 2
-                                ; *** 100x
-TIME0:  mov     R2,#0FFh        ; 2 
-TIME1:  djnz    R2,TIME1        ; 256*2   
-        mov     R2,#0FFh        ; 2       
-TIME2:  djnz    R2,TIME2        ; 256*2 
-        mov     R2,#024h        ; 2       
-TIME3:  djnz    R2,TIME3        ; 36*2
-        nop                     ; 1
-        djnz    R1,TIME0        ; 2
-                                ; ***
-        mov     R1,#02Ah        ; 2 
-TIME4:  djnz    R1,TIME4        ; 43*2  
+        push    PSW
+        push    1 ;R1
+        push    2 ;R2
+
+;        mov     R1,#063h        ; 2
+;                                ; *** 100x
+;TIME0:  mov     R2,#0FFh        ; 2 
+;TIME1:  djnz    R2,TIME1        ; 256*2   
+;        mov     R2,#0FFh        ; 2       
+;TIME2:  djnz    R2,TIME2        ; 256*2 
+;        mov     R2,#024h        ; 2       
+;TIME3:  djnz    R2,TIME3        ; 36*2
+;        nop                     ; 1
+;        djnz    R1,TIME0        ; 2
+;                                ; ***
+;        mov     R1,#02Ah        ; 2 
+;TIME4:  djnz    R1,TIME4        ; 43*2
+
+        TIMER2  1
+TIME:   ;mov     WDTRST, #01Eh
+        ;mov     WDTRST, #0E1h
+        jnb     TR2, TIMEEND 
+        jnb		  T2_F, TIME					 ;pockame, kym prejde 50-100 ms. 
+TIMEEND:          
+        pop     2 ;R2
+        pop     1 ;R1
+        pop     PSW
         ret                     ; koniec
         
         
@@ -1290,6 +1365,10 @@ TIME4:  djnz    R1,TIME4        ; 43*2
 ; osetri stlacenie tlacidla STOP
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 STOP:
+        push    PSW
+        push    ACC
+        
+        
         setb    STOPPED
         clr     FAST
         clr     SLOW
@@ -1309,14 +1388,18 @@ STOPC:  lcall   READPORTS1
         jnb     T2_F, STOPC 
              
              
-        clr     LEDU        ; obnovenie stavu smerovej signalizacie
+        clr     LEDU        
         clr     LEDD     
-        pop     ACC           
+        pop     ACC         ; obnovenie stavu smerovej signalizacie  
         anl     A, 0C0h
         orl     OUTPORTC, A
         
         setb    SLOW
         lcall   WRITEPORTS
+        
+        
+        pop    ACC
+        pop    PSW
         ret        
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1324,7 +1407,11 @@ STOPC:  lcall   READPORTS1
 ; precita nove hodnoty na portoch
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 READPORTS1:
+        push    PSW
         clr     EA                  ;Treba zakazat prerusenia
+        
+        ;mov     WDTRST, #01Eh
+        ;mov     WDTRST, #0E1h
         
         mov     p2, #i8255INA       ; citaj data z portu A
         mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
@@ -1363,7 +1450,8 @@ READPORTS1:
         nop
         nop
         nop
-        setb    EA                 ;znovu spustime prerusenia
+        setb    EA                 ;znovu spustime prerusenia .
+        pop     PSW
         ret
 
 
@@ -1372,7 +1460,13 @@ READPORTS1:
 ; precita nove hodnoty na portoch
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 READPORTS:
+        push    PSW
+        push    ACC
+
         clr     EA                  ;Treba zakazat prerusenia
+        
+        ;mov     WDTRST, #01Eh
+        ;mov     WDTRST, #0E1h
         
         mov     p2, #i8255INA       ; citaj data z portu A
         mov     p0, #(bmSTOP or bmPKI1 or bmPKI2 or bmPKI3 or bmPKI4 or bmDOORCLSD)
@@ -1412,6 +1506,8 @@ READPORTS:
         nop
         nop
         setb    EA                 ;znovu spustime prerusenia
+        
+        
         
         
         jnb     DPK, READPORTS_C1
@@ -1430,7 +1526,8 @@ READPORTS_C:
         orl     OUTPORTC, A
         call    WRITEPORTS              ; aktualizuj signalizaciu na ovladacom paneli
         
-        
+        pop    ACC
+        pop    PSW
         ret
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1438,6 +1535,7 @@ READPORTS_C:
 ; spravi zalohu vystupnych registrov a posle data von
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 WRITEPORTS:
+        push    PSW
         clr     EA                  ;Treba zakazat prerusenia
         
         mov     p0, OUTPORTA        ; teraz postupne posli data najprv na port A,
@@ -1475,6 +1573,7 @@ WRITEPORTS:
         nop
         nop
         setb     EA                  ;Treba zakazat prerusenia
+        pop     PSW
         ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1485,18 +1584,54 @@ WRITEPORTS:
 ; posle na seriovu linku retazec na adrese DPTR
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 DISPSTR:
+        push    PSW
         push    ACC
-DSPS_LOOP:           
+        push    DPH
+        push    DPL
+DSPS_LOOP: 
+        ;mov     WDTRST, #01Eh
+        ;mov     WDTRST, #0E1h          
         clr     A
         movc    A, @A+DPTR
         jz      DSPS_END
-        clr     TI
-        mov     SBUF, A
-        jnb     TI, $ 
+        ;jnb     TI, $ 
+        ;clr     TI
+        ;mov     SBUF, A
+        
+        lcall   PRINTCHAR
         inc     DPTR
         sjmp    DSPS_LOOP
 DSPS_END:
+        pop     DPL
+        pop     DPH
         pop     ACC
+        pop     PSW
+        ret
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DISPSTR - no wdt
+; posle na seriovu linku retazec na adrese DPTR
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+DISPSTRNOWDT:
+        push    PSW
+        push    ACC
+        push    DPH
+        push    DPL
+DSPSNWDT_LOOP:           
+        clr     A
+        movc    A, @A+DPTR
+        jz      DSPSNWDT_END
+        ;jnb     TI, $ 
+        ;clr     TI
+        ;mov     SBUF, A
+        lcall   PRINTCHAR
+        inc     DPTR
+        sjmp    DSPSNWDT_LOOP
+DSPSNWDT_END:
+        pop     DPL
+        pop     DPH
+        pop     ACC
+        pop     PSW
         ret
                                      
                                      
@@ -1504,6 +1639,8 @@ DSPS_END:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 STR_INIT:         db  0dh, 0ah, 'Riadiaci system je inicializovany.', 0dh, 0ah, 00h
+STR_WDT:          db  0dh, 0ah, 'Zapinam WDT...', 0dh, 0ah, 00h
+STR_RESET:          db  0dh, 0ah, 'Cakam 10 sekund...', 0dh, 0ah, 00h
 STR_STOP:         db  'Riadiaci system je reinicializovany po stlaceni tlacidla STOP.', 0dh, 0ah, 00h
 STR_CALIB:        db  'Kalibracia vytahu je ukoncena.', 0dh, 0ah, 00h
 STR_ERR_1SPOM_C:  db  'Chyba! Vypadla spomalovacia clonka!', 0dh, 0ah, 00h
@@ -1511,6 +1648,7 @@ STR_ERR_2SPOM_C:  db  'Chyba! Vypadli dve spomalovacie clonky!', 0dh, 0ah, 00h
 STR_ERR_ZAST_C:   db  'Chyba! Vypadla zastavovacia clonka!', 0dh, 0ah, 00h
 STR_ERR_SKRH:     db  'Chyba! Neocakavane nacitanie hornej spomalovacej clonky!', 0dh, 0ah, 00h
 STR_ERR_SKRD:     db  'Chyba! Neocakavane nacitanie dolnej spomalovacej clonky!', 0dh, 0ah, 00h
+STR_ERR_FLOOR:     db  'Chyba! Neocakavane pohnutie kabyny z poschodia!', 0dh, 0ah, 00h
 STR_CFC_START:    db  'Spustam KTP...', 0dh, 0ah, 00h
 STR_ERR_CFC:      db  'Doslo k zmene KTP!', 0dh, 0ah, 00h
 

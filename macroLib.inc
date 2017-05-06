@@ -42,20 +42,8 @@ CFCSS   MACRO   s, d, D1val, D2val, Dx
         ELSE
             mov		D2, #32        ;; Nastavenie priznaku <D2> na hodnotu mimo rozsahu 
         ENDIF                    ;; (aby sa predislo maskovaniu pri nepovolenom skoku)
-        SERCHAR   #s             ;; Vypis aktualneho <s> na seriovu linku
-ENDM
-
-;*******************************************************************************
-;   Vypis znaku na seriovu linku
-;-------------------------------------------------------------------------------
-;     Vypise jeden znak (prijaty ako parameter CHAR) na seriovu linku.   
-;
-SERCHAR MACRO CHAR
-		mov		  A, CHAR
-    jnb     TI, $ 
-    clr     TI
-		mov     SBUF, A
-    
+        mov       A, #s
+        lcall     PRINTCHAR        ;; Vypis aktualneho <s> na seriovu linku
 ENDM
 
 
@@ -113,6 +101,13 @@ LCJNE   MACRO   OP1, OP2, NAVESTIE
         cjne    OP1, OP2, $+6
         jmp     $+6
         ljmp    NAVESTIE
+        nop
+ENDM
+
+; Long call if bit set
+LCALLB  MACRO   TESTBIT, NAVESTIE
+        jnb     TESTBIT, $+6
+        lcall   NAVESTIE
         nop
 ENDM
 

@@ -1,6 +1,6 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; INT_TIMER2
+;*******************************************************************************
 ; Obsluha prerusenia casovaca 2 (Pretecenie coasovaca zaberie 50ms)
+;-------------------------------------------------------------------------------
 ;
 ;     Po kazdom preteceni sa dekrementuje register <T2_C> 
 ;     Ked register dosiahne hodnotu 0, pocitaclo sa zastavi 
@@ -33,3 +33,33 @@ INT_TIMER2_END:
         pop     ACC					
 	reti 
         
+        
+;*******************************************************************************
+;   Vypis znaku na seriovu linku
+;-------------------------------------------------------------------------------
+;     Vypise jeden znak v <A> na seriovu linku.   
+;
+PRINTCHAR:
+    jnb     TI, $ 
+    clr     TI
+;_1: JBC   TRE, _2
+;    JMP   _1
+;_2:  
+		mov     SBUF, A
+    ;setb    EA
+    ret
+    
+;*******************************************************************************
+;   Nacitanie znaku zo seriovej linky
+;-------------------------------------------------------------------------------
+;     Vypise jeden znak v <A> na seriovu linku.   
+;    
+READCHAR:
+		jnb     RI, $
+    clr     RI
+    mov     A, SBUF
+    ret
+
+
+    
+		
