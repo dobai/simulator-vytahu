@@ -43,7 +43,9 @@ CFCSS   MACRO   s, d, D1val, D2val, Dx
             mov		D2, #32        ;; Nastavenie priznaku <D2> na hodnotu mimo rozsahu 
         ENDIF                    ;; (aby sa predislo maskovaniu pri nepovolenom skoku)
         mov       A, #s
-        lcall     PRINTCHAR        ;; Vypis aktualneho <s> na seriovu linku
+        IF (DEBUG_VYPISY)
+            lcall     PRINTCHAR        ;; Vypis aktualneho <s> na seriovu linku
+        ENDIF
 ENDM
 
 

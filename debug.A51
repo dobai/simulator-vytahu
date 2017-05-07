@@ -32,7 +32,8 @@ TF2    BIT   0CFH  ;T2CON.7 - TIMER 2 OVERFLOW FLAG
 WDTRST DATA  0A6H  ;Watchdog timer
 
 
-COUNT    SET    0
+COUNT           SET    0
+DEBUG_VYPISY    SET    0
 
 ;*******************************************************************************
 ;   Oznacenie poruchoveho poschodia 
@@ -278,9 +279,9 @@ RESET:
         clr     ET0
         setb    TR1                 ; aktivacia T1 => spustenie seriovej linky
         
-        clr     TI
-        clr     RI
-        setb    TRE
+        ;clr     TI
+        ;clr     RI
+        ;setb    TRE
         setb	  ES			; enable serial interrupt	
 		    mov		  MSG_PTR_REC, #0h
 		    clr		  S_RI
@@ -329,9 +330,10 @@ RESET:
         mov     ERRFLOOR_U, #0h     ; vynuluj chybovy register
         mov     ERRFLOOR_D, #0h      
 
-        
-        mov     DPTR, #STR_INIT         ; vypis info 
-        lcall   DISPSTR                 ; o inicializacii
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_INIT         ; vypis info 
+            lcall   DISPSTR                 ; o inicializacii
+        ENDIF
         
                
 CALIB:
@@ -363,8 +365,10 @@ CALIBEND2:
         lcall   WRITEPORTS                  ; zapis informaciu
         ;clr     TR0
         ;_BP_
-        mov     DPTR, #STR_INIT             ; vypis info o kalibracii
-        lcall   DISPSTR                     ;
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_INIT             ; vypis info o kalibracii
+            lcall   DISPSTR                     ;
+        ENDIF
 MAIN:
 
 ;            |  7    |  6    |  5    |  4    |  3    |  2    |  1    |  0    |
@@ -401,8 +405,10 @@ MAIN:
         mov		G, #30
 		    mov		D1, #0
         mov		D2, #0
-        mov   DPTR, #STR_CFC_START         ; vypis info 
-        lcall DISPSTR         ;
+        IF (DEBUG_VYPISY)
+            mov   DPTR, #STR_CFC_START         ; vypis info 
+            lcall DISPSTR         ;
+        ENDIF
                       
 
 
@@ -456,8 +462,8 @@ F1C:
         ;ANLB    ACC.5, ERRF4_U  ; |
         jnz     F1OK            ; ak ano, podme na to
         jmp     F1S             ; Nemam sa kde hnut, opakujem
-F1OK:   mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
-        lcall DISPSTR           ;
+F1OK:   mov     DPTR, #COM_BUSY ; Poslanie BUSY spravy 
+        lcall   DISPSTR         ;
         SET_UP                  ; rychly pohyb hore
         SET_FAST                ; 
         lcall   WRITEPORTS      ; 
@@ -547,6 +553,7 @@ FLOOR2:
                 POLOHA_LED 2  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
+        clr     FLOORTIME
         ROZSVIET_SMER_LED
         mov     POSCHODIE, #40h ; 0100 0000 - posch. 2
 F2S:    lcall   READPORTS     ;-; nacitanie dat
@@ -557,7 +564,14 @@ F2S:    lcall   READPORTS     ;-; nacitanie dat
         
         LCALLB		S_RI, RCV_MESSAGE
         
+        jb       FLOORTIME, $+6 ; Ak uz raz presiel stanoveny cas na poschodi, nasledujucu instrukciu preskakujeme
         jnb		   T2_F, F2S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
+        setb     FLOORTIME      ; Nastav priznak, ze uz sme cakaly 3 s, Teraz sa uz mozme pohnut kedykolvek
+        
+        jnb      T2_F, F2_KEEPALIVE_CONT
+        TIMER2  60              ; ...a neurobim to dalsie 3 sekundy
+        SEND_KEEPALIVE          ; Poslanie KEEPALIVE spravy       
+F2_KEEPALIVE_CONT:
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F2S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         jnb     DOORCLSD, F2S   ; Su otvorene dvere? Ak ano, tak nejdem dalej.
@@ -641,8 +655,8 @@ F2SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruc
         ;ANLB    ACC.5, B.4      ;  |
         jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
-F2:     mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
-        lcall DISPSTR           ;
+F2:     mov     DPTR, #COM_BUSY ; Poslanie BUSY spravy 
+        lcall   DISPSTR         ;
         jb      UPOld, F2UP     ;   
         jmp     F2DOWN          ;
 F2UP:   SET_UP                  ; rychly pohyb hore
@@ -816,6 +830,7 @@ FLOOR3:
                 POLOHA_LED 3  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
+        clr     FLOORTIME
         ROZSVIET_SMER_LED
         mov     POSCHODIE, #80h ; 1000 0000 - posch. 3
 F3S:    lcall   READPORTS     ;-; nacitanie dat
@@ -826,7 +841,14 @@ F3S:    lcall   READPORTS     ;-; nacitanie dat
         
         LCALLB		S_RI, RCV_MESSAGE
         
+        jb       FLOORTIME, $+6 ; Ak uz raz presiel stanoveny cas na poschodi, nasledujucu instrukciu preskakujeme
         jnb		   T2_F, F3S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
+        setb     FLOORTIME      ; Nastav priznak, ze uz sme cakaly 3 s, Teraz sa uz mozme pohnut kedykolvek
+        
+        jnb      T2_F, F3_KEEPALIVE_CONT
+        TIMER2  60              ; ...a neurobim to dalsie 3 sekundy
+        SEND_KEEPALIVE          ; Poslanie KEEPALIVE spravy       
+F3_KEEPALIVE_CONT:
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F3S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         jnb     DOORCLSD, F3S   ; Su otvorene dvere? Ak ano, tak nejdem dalej.
@@ -1104,6 +1126,7 @@ FLOOR4:
                 POLOHA_LED 4  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
+        clr     FLOORTIME
         ROZSVIET_SMER_LED
         mov     POSCHODIE, #0C0h ; 1100 0000 - posch. 4
 F4S:    lcall   READPORTS     ;-; nacitanie dat
@@ -1113,7 +1136,14 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         
         LCALLB		S_RI, RCV_MESSAGE
         
+        jb       FLOORTIME, $+6 ; Ak uz raz presiel stanoveny cas na poschodi, nasledujucu instrukciu preskakujeme
         jnb		   T2_F, F4S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
+        setb     FLOORTIME      ; Nastav priznak, ze uz sme cakaly 3 s, Teraz sa uz mozme pohnut kedykolvek
+        
+        jnb      T2_F, F4_KEEPALIVE_CONT
+        TIMER2  60              ; ...a neurobim to dalsie 3 sekundy
+        SEND_KEEPALIVE          ; Poslanie KEEPALIVE spravy       
+F4_KEEPALIVE_CONT:
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F4S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         jnb     DOORCLSD, F4S   ; Su otvorene dvere? Ak ano, tak nejdem dalej.
@@ -1138,9 +1168,9 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         ;ANLB    ACC.4, ERRF3_D  ; |
         jnz     F4OK          ;-; ak ano, ideme na to
         jmp     F4S             ; Nemam sa kde hnut, opakujem
-F4OK:   mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
-        lcall DISPSTR           ;
-        SET_DOWN                  ; rychly pohyb dole
+F4OK:   mov     DPTR, #COM_BUSY ; Poslanie BUSY spravy 
+        lcall   DISPSTR         ;
+        SET_DOWN                ; rychly pohyb dole
         SET_FAST                ; 
         lcall   WRITEPORTS      ; 
         jmp     DOWN4         ;-; prejdi do stavu DOWN4 
@@ -1246,9 +1276,10 @@ ERR_SKRD:
         clr     DOWN            ; zastav motor
         clr     FAST            ; 
         lcall   WRITEPORTS      ; 
-        mov     DPTR, #STR_ERR_SKRD         ; vypis info o neocakavanom nacitani synchronizacnej clonky
-        lcall   DISPSTR         ;
-        
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_ERR_SKRD         ; vypis info o neocakavanom nacitani synchronizacnej clonky
+            lcall   DISPSTR         ;
+        ENDIF
         mov     PORUCHA, #5
         lcall   MSG05
         lcall   SND_MESSAGE
@@ -1263,9 +1294,10 @@ ERR_SKRH:
         clr     FAST            ; zastav motor
         clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
-        mov     DPTR, #STR_ERR_SKRH         ; vypis info o neocakavanom nacitani synchronizacnej clonky
-        lcall   DISPSTR         ;
-        
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_ERR_SKRH         ; vypis info o neocakavanom nacitani synchronizacnej clonky
+            lcall   DISPSTR         ;
+        ENDIF
         mov     PORUCHA, #4
         lcall   MSG05
         lcall   SND_MESSAGE
@@ -1280,8 +1312,10 @@ ERRFLOOR:
         clr     FAST            ; zastav motor
         clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
-        mov     DPTR, #STR_ERR_FLOOR         ; vypis info o neocakavanom pohnuti sa kabiny z poschodia
-        lcall   DISPSTR         ;
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_ERR_FLOOR         ; vypis info o neocakavanom pohnuti sa kabiny z poschodia
+            lcall   DISPSTR         ;
+        ENDIF
         ; rozblikaj vsetky LEDky
         ; pockaj kym vsetci vystupia
         ; pockaj este 3 sakundy
@@ -1298,8 +1332,10 @@ CFCERR:
         clr     FAST            ; 
         clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
-        mov     DPTR, #STR_ERR_CFC         ; vypis info o zisteni chyby toku programu
-        lcall   DISPSTR         ;  
+        IF (DEBUG_VYPISY)
+            mov     DPTR, #STR_ERR_CFC         ; vypis info o zisteni chyby toku programu
+            lcall   DISPSTR         ;  
+        ENDIF
         lcall   MSG06
         lcall   SND_MESSAGE
                 
