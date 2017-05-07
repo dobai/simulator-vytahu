@@ -60,7 +60,18 @@ TIMER2  MACRO  VAL
 ENDM
 
 
-
+;*******************************************************************************
+;   Sprava KEEPALIVE
+;-------------------------------------------------------------------------------
+;     Odošle správu keepalive (00h, 00h, 7eh)
+;
+SEND_KEEPALIVE   MACRO
+      mov     A, #0h
+      lcall   PRINTCHAR
+      lcall   PRINTCHAR 
+      mov     A, #7Eh 
+      lcall   PRINTCHAR 
+ENDM
 
 ;*******************************************************************************
 ;   Ekvivalenty podmienenych skokovych instrukcii s dlhym skokom
@@ -104,9 +115,23 @@ LCJNE   MACRO   OP1, OP2, NAVESTIE
         nop
 ENDM
 
+; Compare & jump if equal
+CJE   	MACRO   OP1, OP2, NAVESTIE
+        cjne    OP1, OP2, $+6
+        ljmp     NAVESTIE
+        nop
+ENDM
+
 ; Long call if bit set
 LCALLB  MACRO   TESTBIT, NAVESTIE
         jnb     TESTBIT, $+6
+        lcall   NAVESTIE
+        nop
+ENDM
+
+; Compare & Long call if equal
+CLCALLE	MACRO   OP1, OP2, NAVESTIE
+        cjne    OP1, OP2, $+6
         lcall   NAVESTIE
         nop
 ENDM

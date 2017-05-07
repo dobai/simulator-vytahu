@@ -54,11 +54,11 @@ _2:
 ;-------------------------------------------------------------------------------
 ;     Vypise jeden znak v <A> na seriovu linku.   
 ;    
-READCHAR:
-		jnb     RI, $
-    clr     RI
-    mov     A, SBUF
-    ret
+;READCHAR:
+;		jnb     RI, $
+;    clr     RI
+;    mov     A, SBUF
+;    ret
 
 
 
@@ -72,12 +72,12 @@ READCHAR:
 ;  
 SERIAL_INT:
 		;clr		EA
-    push  PSW
-		push	ACC
-		push	1 ;R1
+    push    PSW
+		push    ACC
+		push    1 ;R1
     
     
-		jnb		RI, SERIAL_INT_TI					; Ak neslo o recieve interrupt, nenacitavame znak
+		jnb		RI, SERIAL_INT_TI					; Ak neslo o recieve interrupt, ideme na transmit interrupt
 		clr		RI
 		mov		A, SBUF
 		cjne	A, #07Eh, SERIAL_INT_RCV
@@ -87,11 +87,11 @@ SERIAL_INT_EOF:
 		jmp		SERIAL_INT_TI
 SERIAL_INT_RCV:		
     jb		S_RI, SERIAL_INT_TI 				; ak sme este stale neznulovali priznak prijatej spravy, nenacitavame dalsiu
-		push	ACC
+		push    ACC
 		mov		A, #80h
 		add		A, MSG_PTR_REC
 		mov		R1, A
-		pop		ACC
+		pop     ACC
 		mov		@R1, A
 		inc		MSG_PTR_REC
 		;jmp		SERIAL_INT_END
@@ -101,9 +101,9 @@ SERIAL_INT_TI:
 		clr		TI
 SERIAL_INT_END:
 
-		pop		1 ;R1
-		pop		ACC
-    pop   PSW
+		pop     1 ;R1
+		pop     ACC
+    pop     PSW
 		;setb	EA
 		reti
     
@@ -115,12 +115,17 @@ SERIAL_INT_END:
 		; nacitanie a odpoved na spravu
 RCV_MESSAGE:	
     push    PSW
+    push    T2CON
+    push    T2_C
+    push    T2
+    
 RCV_MESSAGE1:
 	;	Prijatie spravy
 		TIMER2	80						; Nastavi sa casovac na 4 sekundy. Ak za tento cas nepride sprava, rutina sa skonci
 RCV_LOOP:
 		jb		T2_F, RCV_MESSAGE_END	; Caka sa na prijatie spravy spravu - malo by to byt hned, lebo sme sem skocili, ked bolo S_RI rovne jednej, ale ked je NACK, tak skaceme sem (a cakame na resend)
-		jnb		S_RI, RCV_LOOP	
+		lcall   READPORTS
+    jnb		S_RI, RCV_LOOP	
 
 		
 		
@@ -175,14 +180,216 @@ SLOOP:	mov		@R0, A
 		;mov     R0, #0C0h          	    ; Odoslanie odpovede
 		;lcall	DISPSTRI			    ; z vyrovnavacej pamate urcenej pre odpoved D:0C0h
 		
-		;lcall	SND_MESSAGE				;odoslanie spravy                                                                                                                         <<<<<<<<<<
+		lcall	SND_MESSAGE				;odoslanie spravy                                                                                                                         <<<<<<<<<<
 		
 		
 RCV_MESSAGE_END:
 
-    pop    PSW
+    pop     T2
+    pop     T2_C
+    pop     T2CON
+    pop     PSW
 		ret
 
+
+
+
+;-------ODPOVED---------------------------------------------------------
+
+SND_MESSAGE:
+		push    PSW
+    push    0 ;R0
+    push    1 ;R1
+    push    5 ;R5
+
+	; 	Priprava odpovede
+		mov		A, #08h
+		mov		R0, #0C0h
+S2LOOP:	mov		@R0, A
+		inc		R0
+		dec		A
+		jnz		S2LOOP
+		mov		@R0, #0h
+	; 	Priprava odpovede
+		
+		
+		;Zistenie, o aky typ spravy ide
+		mov		MSG_PTR_S, #0C1h
+		mov		R0, #0C0h
+		mov		@R0, #0
+		mov		R0, #80h
+		mov 	A,  @R0
+		mov		R1, A 
+		mov		R0, #81h
+		mov 	MSG_PTR_R,  R0
+SND_DATA_LOOP:
+		mov		A, @R0
+		CLCALLE A, #0, MSG00
+		CLCALLE A, #1, MSG01
+		inc		R0
+		inc		R0
+		dec		R1
+		mov		A, R1
+		jnz		SND_DATA_LOOP
+		
+		;	Vypocet CRC					; Vypocita sa pre kolko bajtov treba spocitat CRC
+		mov     R0, #0C0H			  	; 	Adresa prveho bajtu spravy (Count)
+		mov		A, @R0					;
+		mov		B, #2					;	(Count * 2) + 1, lebo datove bloky su dvojbajtove
+		mul		AB						;	 a cisluje sa od 1.
+		inc 	A						;	
+		mov		MSG_LEN, A				;
+		mov		R2, MSG_LEN				; Vypocet CRC:  
+		mov     R0, #0C0H 			  	; 	R2 = dlzka bloku, 
+		lcall	CALC_CRCX				;	R0 = adresa zaciatku bloku
+		cjne	A, #7Eh, SND_CONT		; Ak vyslo CRC 0x7E, pripocitame 1
+		inc		A						;	(jedna sa totiz o kridlovu znacku)
+SND_CONT:								;
+		mov		@R0, A					; Ulozenie CRC8 do buffra
+		
+		
+		
+		mov		R5, #5					;max. 5 pokusov o znovuodoslanie spravy
+SND:		
+		mov     R0, #0C0h          	    ; Odoslanie odpovede
+		lcall	DISPMSG			    	; z vyrovnavacej pamate urcenej pre odpoved D:0C0h
+		dec		R5						; a zaznamename, ze sme poslali spravu
+		
+		;clr		S_RI				; Prijata sprava bola tym padom spracovana, mozme vynulovat priznak S_RI
+		
+		TIMER2	80						; Nastavi sa casovac na 4 sekundy. Ak za tento cas nepride sprava, rutina sa skonci
+SND_LOOP:
+    lcall   READPORTS
+		jb		T2_F, SND_MESSAGE_END	; Caka sa na prijatie spravy spravu - malo by to byt hned, lebo sme sem skocili, ked bolo S_RI rovne jednej, ale ked je NACK, tak skaceme sem (a cakame na resend)
+		mov		A, R5
+		jz		SND_MESSAGE_END   ; Ak sme uz spravu preposielali 5. krat, koncime
+		jnb		S_RI, SND_LOOP	
+		
+		clr		S_RI					; Prijata sprava bola tym padom spracovana, mozme vynulovat priznak S_RI
+
+		mov		R0, #80h
+		mov 	A,  @R0
+		cje		A,  #0FEh, SND_MESSAGE_END
+		cje		A,  #0FFh, SND
+
+SND_MESSAGE_END:
+    mov		MSG_PTR_S, #0C1h
+
+    pop     5 ;R5
+    pop     1 ;R1
+    pop     0 ;R0
+    pop     PSW
+		ret
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Sprava 0
+; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+MSG00:
+		push    0 ;R0
+		push    ACC
+		mov		R0, MSG_PTR_S
+		mov		@R0, #4h
+		inc		R0
+		mov		@R0, #00000000b
+		
+		mov		R0, #0C0h
+		inc		@R0
+		
+		inc		MSG_PTR_S
+		inc		MSG_PTR_S
+		
+		pop     ACC
+		pop     0 ;R0
+		ret
+        
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Sprava 1
+; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
+MSG01:
+		push    0 ;R0
+		push    ACC
+    push    B
+    
+		mov		R0, MSG_PTR_S
+		mov		@R0, #5h
+		inc		R0
+    
+    mov   A, POSCHODIE                  ; poschodie, na ktorom sa nachadzame
+    orl   A, PORUCHA                    ; posledna rozpoznana porucha
+    
+MSG01_DP:
+    jnb   DP, MSG01_DPZK
+    orl   A, #08h
+MSG01_DPZK:
+    jnb   DPZK, MSG01_DPK
+    orl   A, #10h
+MSG01_DPK:     
+    jnb   DPK, MSG01_CONT
+    orl   A, #18h
+MSG01_CONT:
+        
+		mov		@R0, A
+    mov   PORUCHA, #0 ;porucha 000 - bez poruchy (vynulujem poruchy)
+		
+		mov		R0, #0C0h
+		inc		@R0
+		
+		inc		MSG_PTR_S
+		inc		MSG_PTR_S
+		
+    pop     B
+		pop     ACC
+		pop     0 ;R0
+		ret
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; DISPMSG
+; posle na seriovu linku retazec z buff (ROM, nepriame adresovanie)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+DISPMSG:
+    push    PSW
+    push    ACC
+		push    0; R0
+		push    1; R1
+		
+		mov		R1, #0C0h
+		mov		A, @R1
+		mov		B, #2
+		mul		AB
+		inc		A
+		inc		A
+		mov		R1, A
+    mov   R0, #0C0h
+		
+DISPMSG_LOOP:           
+		mov     A, R1
+    jz      DISPMSG_END
+		mov     A, @R0
+		;jnb     TI, $
+		;clr     TI
+    ;    mov     SBUF, A
+    lcall   PRINTCHAR
+    inc     R0
+		dec		  R1
+    sjmp    DISPMSG_LOOP
+DISPMSG_END:
+		mov     A, #07Eh		; odoslanie kridlovej znacky
+		;jnb     TI, $
+		;clr     TI
+    ;    mov     SBUF, A
+		lcall   PRINTCHAR
+    
+    
+		pop     1; R1
+		pop     0; R0
+    pop     ACC
+    pop     PSW
+    ret
 
 
 ;****************************************************************************
@@ -215,7 +422,7 @@ RCV_MESSAGE_END:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 CALC_CRCX:
     push    PSW
-		push	  B
+		push    B
 		;mov		R0, A
 		
 		mov 	  B, #00h;
@@ -232,7 +439,7 @@ CRCX_CONT:
 CRCX_END:
 		mov		  A, B
     
-		pop		  B
+		pop     B
     pop     PSW
     ret
         

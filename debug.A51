@@ -46,17 +46,25 @@ SET_FLOOR_ERR   MACRO   TESTBIT, FLOORBIT, NAVESTIE, POSCH, LABEL    ;; nastavi 
         COUNT    SET    COUNT+1                   
         
         jb      TESTBIT, ENDD&LABEL
-        jnb     PKI&POSCH, $+7
+        
+        IF (TESTBIT EQ MB2)
+            mov   PORUCHA, #3 ;porucha 011 - EZ
+        ENDIF 
+        IF (TESTBIT EQ MB1)
+            mov   PORUCHA, #1 ;porucha 001 - E1S
+        ENDIF 
+        
+        jnb     PKI&POSCH, $+9
         clr     FAST
         setb    SLOW
         setb    STOPPED         
         setb    FLOORBIT&_U
         setb    FLOORBIT&_D
         inc     FLOORBIT&_C
-		clr     PKO&POSCH				;; vynulovanie volby poschodia na ktorom stojim
+		    clr     PKO&POSCH				;; vynulovanie volby poschodia na ktorom stojim
         clr     PO&POSCH&U            
         clr     PO&POSCH&D		
-		lcall   WRITEPORTS
+		    lcall   WRITEPORTS
         ljmp    NAVESTIE
 ENDD&LABEL:
         nop
@@ -70,6 +78,7 @@ ENDM
 CLR_FLOOR_ERR   MACRO   FLOORBIT,   ;; nastavi dane poschodie ako bezporuchove           
         clr    FLOORBIT&_U
         clr    FLOORBIT&_D
+        ;mov    PORUCHA, #0 ;porucha 000 - bez poruchy
         nop
 ENDM
 
@@ -379,8 +388,11 @@ MAIN:
 
         ;mov     R5, #0
         ;mov     R6, #20
-        ;setb    ET0;
+        setb    ET0;                                                                                                                                             ;<<<<<<<<<<<<<<<<<<
         
+        mov		MSG_PTR_R, #081h
+        mov		MSG_PTR_S, #0C1h
+        mov   PORUCHA, #0
 
                                                                                           
         ;Inicializacia priznakov (CFCSS)
@@ -401,15 +413,26 @@ FLOOR1:
                 POLOHA_LED 1  ;-; Zhasni LEDKY,uz sme na poschodi (aj na paneli "Poloha kabiny", nechaj len aktualne poschodie)
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
+        clr     FLOORTIME
         ROZSVIET_SMER_LED
+        mov     POSCHODIE, #00h ; 0000 000 - posch. 1
 F1S:    lcall   READPORTS       ; nacitanie dat
         ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 1
-        
+
         LCALLB		S_RI, RCV_MESSAGE
         
+        jb       FLOORTIME, $+6 ; Ak uz raz presiel stanoveny cas na poschodi, nasledujucu instrukciu preskakujeme
         jnb		   T2_F, F1S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
+        setb     FLOORTIME      ; Nastav priznak, ze uz sme cakaly 3 s, Teraz sa uz mozme pohnut kedykolvek
+        
+        jnb      T2_F, F1_KEEPALIVE_CONT
+        TIMER2  60              ; ...a neurobim to dalsie 3 sekundy
+        SEND_KEEPALIVE          ; Poslanie KEEPALIVE spravy       
+F1_KEEPALIVE_CONT:
+        ;jmp     F1S  
+                       
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F1S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
         jnb     DOORCLSD, F1S   ; Su otvorene dvere? Ak ano, tak nejdem dalej.
@@ -431,7 +454,9 @@ F1C:
         ;ANLB    ACC.5, ERRF4_U  ; |
         jnz     F1OK            ; ak ano, podme na to
         jmp     F1S             ; Nemam sa kde hnut, opakujem
-F1OK:   SET_UP                  ; rychly pohyb hore
+F1OK:   mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
+        lcall DISPSTR           ;
+        SET_UP                  ; rychly pohyb hore
         SET_FAST                ; 
         lcall   WRITEPORTS      ; 
         jmp     UP1             ; prejdi do stavu UP1
@@ -461,8 +486,7 @@ UP1_MB2:
         ZAKMITC MB2             ; Pockame, kym odideme z poschodia (Clonky MB1)
 UP1_MB2A: lcall   READPORTS       ; nacitanie dat
         ljnb    SKRH, ERR_SKRH  ; >>> CHYBA, Horna porovnavacia clonka <<<
-        ; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
-        SET_FLOOR_ERR   MB1, ERRF12, UP2, 2, %COUNT
+        SET_FLOOR_ERR   MB1, ERRF12, UP2, 2, %COUNT   ; >>> CHYBA, Vypadla spomalovacia clonka (narazil som na zastavovaciu) <<<
         jb      MB2, UP1_MB2A  ;-; mame uz aj druhu spomalovaciu clonku?  
         CLR_FLOOR_ERR   ERRF12   
         ;setb    LEDU            ; Rozsviet LEDku, ze mame druhu MB2
@@ -522,11 +546,15 @@ FLOOR2:
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
+        mov     POSCHODIE, #40h ; 0100 0000 - posch. 2
 F2S:    lcall   READPORTS     ;-; nacitanie dat
         ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 2
+        
+        LCALLB		S_RI, RCV_MESSAGE
+        
         jnb		   T2_F, F2S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F2S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
@@ -611,7 +639,9 @@ F2SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruc
         ;ANLB    ACC.5, B.4      ;  |
         jnz     F2              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F2S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
-F2:     jb      UPOld, F2UP     ;   
+F2:     mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
+        lcall DISPSTR           ;
+        jb      UPOld, F2UP     ;   
         jmp     F2DOWN          ;
 F2UP:   SET_UP                  ; rychly pohyb hore
         SET_FAST                ; 
@@ -785,11 +815,15 @@ FLOOR3:
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
+        mov     POSCHODIE, #80h ; 1000 0000 - posch. 3
 F3S:    lcall   READPORTS     ;-; nacitanie dat
         ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRH, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 3
+        
+        LCALLB		S_RI, RCV_MESSAGE
+        
         jnb		   T2_F, F3S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F3S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
@@ -873,7 +907,9 @@ F3SW:   mov     A, R0           ;  Znegujem posledny bit adresy registra s poruc
         ;ANLB    ACC.5, B.4      ;  |
         jnz     F3              ; nasli sme poschodie v tomto smere, mozme ist
         jmp     F3S           ;-; nemame sa kde hybat, tak opakujeme zistovanie
-F3:     jb      UPOld, F3UP     ;   
+F3:     mov     DPTR, #COM_BUSY ; Poslanie BUSY spravy 
+        lcall   DISPSTR         ;
+        jb      UPOld, F3UP     ;   
         jmp     F3DOWN          ;
 F3UP:   SET_UP                  ; rychly pohyb hore
         SET_FAST                ; 
@@ -1067,10 +1103,14 @@ FLOOR4:
         clr     STOPPED
         TIMER2  60              ; (Timer - 3s)
         ROZSVIET_SMER_LED
+        mov     POSCHODIE, #0C0h ; 1100 0000 - posch. 4
 F4S:    lcall   READPORTS     ;-; nacitanie dat
         ljnb    MB2, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ljnb    SKRD, ERRFLOOR   ; chyba, kabina sa pohla, ked sa nemala!
         ZRUS_POSCH 4
+        
+        LCALLB		S_RI, RCV_MESSAGE
+        
         jnb		   T2_F, F4S			; Uz presiel minimalny cas na poschodi? Ak nie, nejdeme dalej
         KABINOVE_SVETLO         ; Rozsviet kabinove svetlo a smerovu signalizaciu ak je v kabine osoba
         jb      DPK, F4S        ; Mam pretazenu kabinu? (Ak ano, tak sa nepohnem)
@@ -1096,7 +1136,9 @@ F4S:    lcall   READPORTS     ;-; nacitanie dat
         ;ANLB    ACC.4, ERRF3_D  ; |
         jnz     F4OK          ;-; ak ano, ideme na to
         jmp     F4S             ; Nemam sa kde hnut, opakujem
-F4OK:   SET_DOWN                  ; rychly pohyb dole
+F4OK:   mov   DPTR, #COM_BUSY   ; Poslanie BUSY spravy 
+        lcall DISPSTR           ;
+        SET_DOWN                  ; rychly pohyb dole
         SET_FAST                ; 
         lcall   WRITEPORTS      ; 
         jmp     DOWN4         ;-; prejdi do stavu DOWN4 
@@ -1270,10 +1312,6 @@ INT_TIMER0:
         push    PSW
         push    ACC
         push    B
-        push    P0
-        push    P1
-        push    P2
-        push    P3
         ;push    OUTPORTC
         
         mov     A, T0_C ;R5
@@ -1281,8 +1319,7 @@ INT_TIMER0:
         jz      INT_TIMER0_MAIN    
         sjmp    INT_TIMER0_END
 INT_TIMER0_MAIN:
-        mov     A, #TIMER0CONST;R6
-        mov     T0_C, A ;R5, A
+        mov     T0_C, #TIMER0CONST ;R5, A
         mov     A, ERRFLOOR_U
         orl     A, ERRFLOOR_D
         anl     A, #00011110b
@@ -1291,23 +1328,19 @@ INT_TIMER0_MAIN:
         rl      A    
         xrl     OUTPORTB, A     
                       
-        clr    EA
-        mov     p0, OUTPORTB 
-        mov     p2, #i8255OUTB
-        clr     WRNOT
-        nop
-        nop
-        nop
-        nop
-        setb    WRNOT
-        setb    EA
+        ;clr    EA
+        ;mov     p0, OUTPORTB 
+        ;mov     p2, #i8255OUTB
+        ;clr     WRNOT
+        ;nop
+        ;nop
+        ;nop
+        ;nop
+        ;setb    WRNOT
+        ;setb    EA
      
 INT_TIMER0_END:
         ;pop     OUTPORTC
-        pop     P3
-        pop     P2
-        pop     P1
-        pop     P0 
         pop     B       
         pop     ACC
         pop     PSW
@@ -1661,7 +1694,7 @@ STR_ERR_FLOOR:     db  'Chyba! Neocakavane pohnutie kabyny z poschodia!', 0dh, 0
 STR_CFC_START:    db  'Spustam KTP...', 0dh, 0ah, 00h
 STR_ERR_CFC:      db  'Doslo k zmene KTP!', 0dh, 0ah, 00h
 
-COM_KEEPALIVE:    db  000h, 00h, 7Eh, 00h
+;COM_KEEPALIVE:    db  000h, 00h, 7Eh, 00h
 COM_BUSY:		      db  0FDh, 89h, 7Eh, 00h
 COM_ACK:		      db  0FEh, 6Bh, 7Eh, 00h
 COM_NACK:		      db  0FFh, 35h, 7Eh, 00h

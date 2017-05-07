@@ -44,7 +44,7 @@ ERRFLOOR_D      data    2Bh
 T_F		          data	  2Ch
 T2_C		        data	  2Dh      ;toto tu nemusi byt, netreba mi bitovo adresovatelne
 T0_C            data	  2Eh
-;               data    2Fh  
+T2              data    2Fh  
 ; general purpose RAM (including STACK)
 POSITION        data    30h
 LOWEST          data    31h
@@ -66,9 +66,12 @@ ERRSKRD_C       data    40h
 ERRSIG          data    41h
    
 MSG_LEN			    data	  42h
-MSG_PTR_L		    data	  43h
-MSG_PTR_H		    data	  44h
+MSG_PTR_R		    data	  43h
+MSG_PTR_S		    data	  44h
 MSG_PTR_REC		  data	  45h
+
+POSCHODIE       data    46h
+PORUCHA         data    47h
 
              
 
@@ -78,9 +81,10 @@ MSG_PTR_REC		  data	  45h
 
 
 T0_F		        bit	    T_F.0
-T2_F		        bit	    T_F.2
+T2_F		        bit	    T2.2
 S_RI			      bit		  T_F.1
 TRE             bit     T_F.3
+FLOORTIME       bit     T_F.4
 
 ERRF1_U         bit     ERRFLOOR_U.1
 ERRF2_U         bit     ERRFLOOR_U.2
