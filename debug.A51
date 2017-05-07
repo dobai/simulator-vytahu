@@ -392,6 +392,8 @@ MAIN:
         
         mov		MSG_PTR_R, #081h
         mov		MSG_PTR_S, #0C1h
+        mov   R0, #0C0H 			 
+        mov   @R0, #0h
         mov   PORUCHA, #0
 
                                                                                           
@@ -1246,6 +1248,11 @@ ERR_SKRD:
         lcall   WRITEPORTS      ; 
         mov     DPTR, #STR_ERR_SKRD         ; vypis info o neocakavanom nacitani synchronizacnej clonky
         lcall   DISPSTR         ;
+        
+        mov     PORUCHA, #5
+        lcall   MSG05
+        lcall   SND_MESSAGE
+        
         ; Nastavenie spravneho priznaku G a D     
         mov     G, #30          ;
         mov     D1, #0           ;
@@ -1258,6 +1265,11 @@ ERR_SKRH:
         lcall   WRITEPORTS      ; 
         mov     DPTR, #STR_ERR_SKRH         ; vypis info o neocakavanom nacitani synchronizacnej clonky
         lcall   DISPSTR         ;
+        
+        mov     PORUCHA, #4
+        lcall   MSG05
+        lcall   SND_MESSAGE
+        
         ; Nastavenie spravneho priznaku G a D     
         mov     G, #5           ;
         mov     D1, #0           ;
@@ -1287,7 +1299,9 @@ CFCERR:
         clr     SLOW            ; 
         lcall   WRITEPORTS      ; 
         mov     DPTR, #STR_ERR_CFC         ; vypis info o zisteni chyby toku programu
-        lcall   DISPSTR         ;
+        lcall   DISPSTR         ;  
+        lcall   MSG06
+        lcall   SND_MESSAGE
                 
 ENDPROG:
         TIMER2  20

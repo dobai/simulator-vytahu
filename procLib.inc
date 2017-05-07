@@ -126,8 +126,14 @@ RCV_LOOP:
 		jb		T2_F, RCV_MESSAGE_END	; Caka sa na prijatie spravy spravu - malo by to byt hned, lebo sme sem skocili, ked bolo S_RI rovne jednej, ale ked je NACK, tak skaceme sem (a cakame na resend)
 		lcall   READPORTS
     jnb		S_RI, RCV_LOOP	
-
-		
+    
+    ;Ak ide o busy, keepalive alebo ACK/NACK spravu, ignorujeme.
+    mov     R0, #80H
+    mov		  A, @R0
+    cje     A, #000h, RCV_MESSAGE_END
+    cje     A, #0FDh, RCV_MESSAGE_END  
+    cje     A, #0FEh, RCV_MESSAGE_END  
+    cje     A, #0FFh, RCV_MESSAGE_END  
 		
 	;	Vypocet CRC						; Vypocita sa pre kolko bajtov treba spocitat CRC
 		mov     R0, #80H			  	; 	Adresa prveho bajtu prijatej spravy (Count)
@@ -169,22 +175,24 @@ PROCESS:
 		
 		clr		S_RI				    ; Prijata sprava bola tym padom spracovana, mozme vynulovat priznak S_RI
 		
-		mov		A, #08h
-		mov		R0, #0C0h
-SLOOP:	mov		@R0, A
-		inc		R0
-		dec		A
-		jnz		SLOOP
-		mov		@R0, #0h
+;		mov		A, #08h
+;		mov		R0, #0C0h
+;SLOOP:	mov		@R0, A
+;		inc		R0
+;		dec		A
+;		jnz		SLOOP
+;		mov		@R0, #0h
 		
 		;mov     R0, #0C0h          	    ; Odoslanie odpovede
 		;lcall	DISPSTRI			    ; z vyrovnavacej pamate urcenej pre odpoved D:0C0h
 		
+    
+    lcall PREP_MESSAGE
 		lcall	SND_MESSAGE				;odoslanie spravy                                                                                                                         <<<<<<<<<<
 		
 		
 RCV_MESSAGE_END:
-
+    clr		  S_RI				    ; Prijata sprava bola tym padom spracovana, mozme vynulovat priznak S_RI
     pop     T2
     pop     T2_C
     pop     T2CON
@@ -196,21 +204,21 @@ RCV_MESSAGE_END:
 
 ;-------ODPOVED---------------------------------------------------------
 
-SND_MESSAGE:
+PREP_MESSAGE:
 		push    PSW
     push    0 ;R0
     push    1 ;R1
     push    5 ;R5
 
-	; 	Priprava odpovede
-		mov		A, #08h
-		mov		R0, #0C0h
-S2LOOP:	mov		@R0, A
-		inc		R0
-		dec		A
-		jnz		S2LOOP
-		mov		@R0, #0h
-	; 	Priprava odpovede
+;	; 	Priprava odpovede
+;		mov		A, #08h
+;		mov		R0, #0C0h
+;S2LOOP:	mov		@R0, A
+;		inc		R0
+;		dec		A
+;		jnz		S2LOOP
+;		mov		@R0, #0h
+;	; 	Priprava odpovede
 		
 		
 		;Zistenie, o aky typ spravy ide
@@ -224,13 +232,25 @@ S2LOOP:	mov		@R0, A
 		mov 	MSG_PTR_R,  R0
 SND_DATA_LOOP:
 		mov		A, @R0
-		CLCALLE A, #0, MSG00
-		CLCALLE A, #1, MSG01
+		CLCALLE A, #0, MSG04
+		CLCALLE A, #1, MSG05
 		inc		R0
 		inc		R0
 		dec		R1
 		mov		A, R1
 		jnz		SND_DATA_LOOP
+    
+    pop    5 ;R5
+    pop    1 ;R1
+    pop    0 ;R0
+    pop    PSW
+    ret
+
+SND_MESSAGE:
+		push    PSW
+    push    0 ;R0
+    push    1 ;R1
+    push    5 ;R5    
 		
 		;	Vypocet CRC					; Vypocita sa pre kolko bajtov treba spocitat CRC
 		mov     R0, #0C0H			  	; 	Adresa prveho bajtu spravy (Count)
@@ -273,7 +293,9 @@ SND_LOOP:
 		cje		A,  #0FFh, SND
 
 SND_MESSAGE_END:
-    mov		MSG_PTR_S, #0C1h
+    mov		  MSG_PTR_S, #0C1h
+    mov     R0, #0C0H 			 
+    mov     @R0, #0h 
 
     pop     5 ;R5
     pop     1 ;R1
@@ -283,10 +305,10 @@ SND_MESSAGE_END:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Sprava 0
+; Sprava #4 - odpoved na spravu #0
 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-MSG00:
+MSG04:
 		push    0 ;R0
 		push    ACC
 		mov		R0, MSG_PTR_S
@@ -305,10 +327,10 @@ MSG00:
 		ret
         
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Sprava 1
+; Sprava #5 - odpoved na spravu #1
 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
-MSG01:
+MSG05:
 		push    0 ;R0
 		push    ACC
     push    B
@@ -333,6 +355,36 @@ MSG01_CONT:
         
 		mov		@R0, A
     mov   PORUCHA, #0 ;porucha 000 - bez poruchy (vynulujem poruchy)
+		
+		mov		R0, #0C0h
+		inc		@R0
+		
+		inc		MSG_PTR_S
+		inc		MSG_PTR_S
+		
+    pop     B
+		pop     ACC
+		pop     0 ;R0
+		ret
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Sprava #6 - porucha KTP
+; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;		
+MSG06:
+		push    0 ;R0
+		push    ACC
+    push    B
+    
+		mov		R0, MSG_PTR_S
+		mov		@R0, #6h
+		inc		R0
+    
+    mov   A, G                          ; Aktualny priznak G
+    anl   A, #3Fh                       ; Horne dva bity musia byt vzdy 0
+    
+		mov		@R0, A
 		
 		mov		R0, #0C0h
 		inc		@R0
